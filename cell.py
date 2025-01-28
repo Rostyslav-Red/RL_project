@@ -23,9 +23,6 @@ class Cell:
         self._position: Tuple[int, int] = position
 
         # The type of the cell, described in constants.cell_types
-        assert (
-            isinstance(cell_type, int) and cell_type in cell_types
-        ), f"cell_type must be an int in range {min(cell_types)}-{max(cell_types)}"
         self._cell_type: int = cell_type
 
         """
@@ -33,26 +30,25 @@ class Cell:
         left, right, top, and bottom of the cell respectively (e.g., (0, 1, 0, 1) would represent 
         a cell with a wall on the right and bottom, but not on the left or top).
         """
-        assert (
-            isinstance(walls, tuple)
-            and len(walls) == 4
-            and all(isinstance(i, int) and i in (0, 1) for i in walls)
-        ), "walls must be a tuple of length 4 containing ints with values 0 or 1"
         self._walls: Tuple[int, int, int, int] = walls
 
         # True if the cat is on this cell, False otherwise
-        assert isinstance(holds_agent, bool), "holds_agent must be a bool"
         self._holds_agent: bool = holds_agent
 
     # dunder methods
     def __str__(self) -> str:
         """
         0 -> empty -> E
-        1 -> wall -> W
+        1 -> hole -> H
         2 -> fish -> F
         :return: None
         """
-        return cell_types[self._cell_type][0].upper()
+        if self._holds_agent:
+            return "C"
+        return cell_representations[self._cell_type][0].upper()
+
+    def __copy__(self) -> "Cell":
+        return Cell(self._position, self._cell_type, self._walls, self._holds_agent)
 
     # getters
     @property
@@ -79,13 +75,23 @@ class Cell:
         ), f"cell_type must be an int in range {min(cell_types)}-{max(cell_types)}"
         self._cell_type = cell_type
 
+    @walls.setter
+    def walls(self, walls: Tuple[int, int, int, int]) -> None:
+        assert (
+            isinstance(walls, tuple)
+            and len(walls) == 4
+            and all(isinstance(i, int) and i in (0, 1) for i in walls)
+        ), "walls must be a tuple of length 4 containing ints with values 0 or 1"
+        self._walls = walls
+
     @holds_agent.setter
     def holds_agent(self, holds_agent: bool) -> None:
+        assert isinstance(holds_agent, bool), "holds_agent must be a bool"
         self._holds_agent = holds_agent
 
 
-c = Cell((0, 0), 4, (0, 0, 0, 1))
-print(c.cell_type)
-c.cell_type = 4
-print(c.walls)
-print(c)
+# c = Cell((0, 0), 1, (0, 0, 0, 1))
+# print(c.cell_type)
+# c.cell_type = 2
+# print(c.walls)
+# print(c)
