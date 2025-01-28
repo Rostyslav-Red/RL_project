@@ -21,20 +21,20 @@ class Board:
 
     # dunder methods
     def __str__(self):
-        horizontal_line = "  " + "—   " * board_size[1]
+        horizontal_line = " — " + "— — — " * board_size[1]
         result = horizontal_line
         for row in self._board:
-            char_line = "| "
-            wall_line = "| "
+            char_line = "|  "
+            wall_line = "|  "
             for cell in row:
-                char_line += str(cell) + (" | " if cell.walls[1] else "   ")
-                wall_line += "—   " if cell.walls[3] else "    "
-            char_line = char_line[:-2]
-            wall_line = wall_line[:-2]
-            char_line += " |"
-            wall_line += " |"
+                char_line += str(cell) + ("  |  " if cell.walls[1] else "     ")
+                wall_line += "—     " if cell.walls[3] else "      "
+            char_line = char_line[:-4]
+            wall_line = wall_line[:-4]
+            char_line += "  |"
+            wall_line += "  |"
             result += "\n" + char_line + "\n" + wall_line
-        result = result[: -(self._board_size[1] * 4 + 3)]
+        result = result[: -(self._board_size[1] * 6 + 3)]
         result += "\n" + horizontal_line
 
         return result
