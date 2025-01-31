@@ -11,25 +11,32 @@ empty_board = [
 
 # A board from the example in the lecture
 example_board = deepcopy(empty_board)
-example_board[4][0].holds_agent = True
-example_board[3][1].cell_type = 1
-example_board[1][2].cell_type = 1
 
-example_board[3][2].walls = np.array((0, 1))
-example_board[4][2].walls = np.array((0, 1))
-example_board[5][2].walls = np.array((0, 1))
+# Define a cell that holds an agent
+example_board[0][0].holds_agent = True
 
-example_board[3][3].walls = np.array((0, -1))
-example_board[4][3].walls = np.array((0, -1))
-example_board[5][3].walls = np.array((0, -1))
+# Define a cell that holds a target
+example_board[3][3].holds_target = True
 
-example_board[1][4].walls = np.array((1, 0))
-example_board[1][5].walls = np.array((1, 0))
+# Define the locations of the trees
+example_board[0][1].cell_type = 1
+example_board[0][3].cell_type = 1
+example_board[2][0].cell_type = 1
+example_board[2][3].cell_type = 1
 
-example_board[2][4].walls = np.array((-1, 0))
-example_board[2][5].walls = np.array((-1, 0))
-
-example_board[4][5].holds_target = True
+# Define the locations of the walls
+example_board[0][0].walls = np.array([0, 1])
+example_board[0][1].walls = np.array([0, -1])
+example_board[0][2].walls = np.array([0, 1])
+example_board[0][3].walls = np.array([0, -1])
+example_board[1][2].walls = np.array([1, 0])
+example_board[2][2].walls = np.array([-1, 0])
+example_board[2][0].walls = np.array([0, 1])
+example_board[2][1].walls = np.array([1, -1])
+example_board[3][1].walls = np.array([-1, 0])
+example_board[2][3].walls = np.array([1, 0])
+example_board[3][2].walls = np.array([0, 1])
+example_board[3][3].walls = np.array([-1, -1])
 
 b = Board(example_board)
 
@@ -45,3 +52,5 @@ while True:
             b.move(np.array((-1, 0)))
         case "down":
             b.move(np.array((1, 0)))
+        case _:
+            b.move(np.array((0, 0)))

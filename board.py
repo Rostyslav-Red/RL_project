@@ -69,7 +69,8 @@ class Board:
     # movement
     def move(self, direction: Annotated[np.typing.NDArray[np.int_], (2,)]):
         # moves the cat in the specified direction
-        self._move(direction)
+        if not self._move(direction):
+            return False
 
         # moves the mouse in a random allowed direction. If none are allowed, the mouse doesn't move
         possible_directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
@@ -90,6 +91,7 @@ class Board:
             [-1, 0],
             [0, 1],
             [0, -1],
+            [0, 0],
         ], "Invalid direction"
 
         """
@@ -118,10 +120,14 @@ class Board:
         current_cell = self._board[location[0]][location[1]]
 
         # ensures the cat cannot move through the walls withing the level
-        if not move_target:
+        if not move_target and not direction.tolist() == [0, 0]:
             ind = np.nonzero(direction)[0][0]
             if direction[ind] == current_cell.walls[ind]:
                 return
+        # ensures the mouse cannot go on the tree cell
+        else:
+            if self._board[possible_location[0]][possible_location[1]].cell_type == 1:
+                return False
 
         # if none of the checks fail, update the locations of a cat/mouse
         if not move_target:

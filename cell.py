@@ -51,13 +51,13 @@ class Cell:
         1 -> hole -> ○
         :return: None
         """
+        if self._holds_agent and self._holds_target:
+            return "X"
         if self._holds_agent:
             return "C"
         if self._holds_target:
-            if self._cell_type == 0:
-                return "M"
-            else:
-                return "🅜"
+            return "M"
+
         return cell_representations[self._cell_type][0].upper()
 
     def __copy__(self) -> "Cell":
