@@ -1,4 +1,5 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Annotated
+import numpy as np
 from constants import *
 
 
@@ -11,8 +12,9 @@ class Cell:
         self,
         position: Tuple[int, int],
         cell_type: int = 0,
-        walls: Tuple[int, int, int, int] = (0, 0, 0, 0),
+        walls: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array([0, 0]),
         holds_agent: bool = False,
+        holds_target: bool = False,
     ):
         # The location of the cell in the format of (row, column)
         assert (
@@ -26,25 +28,36 @@ class Cell:
         self._cell_type: int = cell_type
 
         """
-        Represents whether there is a wall (1) or there is no wall(0) to the 
-        left, right, top, and bottom of the cell respectively (e.g., (0, 1, 0, 1) would represent 
-        a cell with a wall on the right and bottom, but not on the left or top).
+        Represents the locations of the walls around the cell.
+        The first digit corresponds to the down-top axis, and the second one to the left-right axis.
+        Specifically:
+        (0, -1) means that there is a wall to the left of the cell
+        (0, 1) means that there is a wall to the right of the cell
+        (-1, 0) means that there is a wall above the cell
+        (1, 1) means that there are walls to the right and below the cell
         """
-        self._walls: Tuple[int, int, int, int] = walls
+        self._walls: Annotated[np.typing.NDArray[np.int_], (2,)] = walls
 
         # True if the cat is on this cell, False otherwise
         self._holds_agent: bool = holds_agent
 
+        # True if the mouse is on this cell, False otherwise
+        self._holds_target: bool = holds_target
+
     # dunder methods
     def __str__(self) -> str:
         """
-        0 -> empty -> E
-        1 -> hole -> H
-        2 -> fish -> F
+        0 -> empty -> ·
+        1 -> hole -> ○
         :return: None
         """
         if self._holds_agent:
             return "C"
+        if self._holds_target:
+            if self._cell_type == 0:
+                return "M"
+            else:
+                return "🅜"
         return cell_representations[self._cell_type][0].upper()
 
     def __copy__(self) -> "Cell":
@@ -60,12 +73,16 @@ class Cell:
         return self._cell_type
 
     @property
-    def walls(self) -> Tuple[int, int, int, int]:
+    def walls(self) -> Annotated[np.typing.NDArray[np.int_], (2,)]:
         return self._walls
 
     @property
     def holds_agent(self) -> bool:
         return self._holds_agent
+
+    @property
+    def holds_target(self) -> bool:
+        return self._holds_target
 
     # setters
     @cell_type.setter
@@ -76,18 +93,23 @@ class Cell:
         self._cell_type = cell_type
 
     @walls.setter
-    def walls(self, walls: Tuple[int, int, int, int]) -> None:
+    def walls(self, walls: Annotated[np.typing.NDArray[np.int_], (2,)]) -> None:
         assert (
-            isinstance(walls, tuple)
-            and len(walls) == 4
-            and all(isinstance(i, int) and i in (0, 1) for i in walls)
-        ), "walls must be a tuple of length 4 containing ints with values 0 or 1"
+            isinstance(walls, np.ndarray)
+            and np.all(np.isin(walls, [-1, 0, 1]))
+            and list(walls.shape) == [2]
+        ), "ValueError: walls must be a numpy array with values in {-1, 0, 1} and shape (,2)"
         self._walls = walls
 
     @holds_agent.setter
     def holds_agent(self, holds_agent: bool) -> None:
         assert isinstance(holds_agent, bool), "holds_agent must be a bool"
         self._holds_agent = holds_agent
+
+    @holds_target.setter
+    def holds_target(self, holds_target: bool) -> None:
+        assert isinstance(holds_target, bool), "holds_target must be a bool"
+        self._holds_target = holds_target
 
 
 # c = Cell((0, 0), 1, (0, 0, 0, 1))

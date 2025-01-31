@@ -1,22 +1,35 @@
-from typing import List, Tuple
+from typing import List, Tuple, Annotated, Optional
 from unittest import case
 
 from cell import Cell
 from constants import *
 from copy import deepcopy
 from itertools import chain
+import numpy as np
+import random
 
 
 class Board:
     def __init__(self, board: List[List[Cell]]):
         self._board: List[List[Cell]] = board
-        self._cat_position: Tuple[int] = (0,)
+        self._cat_position: Optional[Annotated[np.typing.NDArray[np.int_], (2,)]] = None
+        self._target_position: Optional[Annotated[np.typing.NDArray[np.int_], (2,)]] = (
+            None
+        )
+
         for cell in list(chain.from_iterable(board)):
             if cell.holds_agent:
-                self._cat_position = cell.position
+                self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
+                    np.array(cell.position)
+                )
+            if cell.holds_target:
+                self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
+                    np.array(cell.position)
+                )
+            if self._cat_position is not None and self._target_position is not None:
                 break
         else:
-            raise ValueError("No cat found on the board")
+            raise ValueError("No cat or target found on the board")
         self._board_size: Tuple[int, int] = (len(board), len(board[0]))
 
     # dunder methods
@@ -27,8 +40,8 @@ class Board:
             char_line = "|  "
             wall_line = "|  "
             for cell in row:
-                char_line += str(cell) + ("  |  " if cell.walls[1] else "     ")
-                wall_line += "—     " if cell.walls[3] else "      "
+                char_line += str(cell) + ("  |  " if cell.walls[1] == 1 else "     ")
+                wall_line += "—     " if cell.walls[0] == 1 else "      "
             char_line = char_line[:-4]
             wall_line = wall_line[:-4]
             char_line += "  |"
@@ -54,59 +67,69 @@ class Board:
         self._cat_position = cat_position
 
     # movement
-    def move(self, direction: str):
-        match direction:
-            case "right":
-                self._move_right()
-            case "left":
-                self._move_left()
-            case "up":
-                self._move_up()
-            case "down":
-                self._move_down()
-            case _:
-                raise ValueError("Invalid direction")
+    def move(self, direction: Annotated[np.typing.NDArray[np.int_], (2,)]):
+        # moves the cat in the specified direction
+        self._move(direction)
 
-    def _move_right(self):
-        target_location = (self._cat_position[0], self._cat_position[1] + 1)
-        if target_location[1] >= self._board_size[1]:
-            return
-        current_cell = self._board[self._cat_position[0]][self._cat_position[1]]
-        if current_cell.walls[1]:
-            return
-        self._board[self._cat_position[0]][self._cat_position[1]].holds_agent = False
-        self._board[target_location[0]][target_location[1]].holds_agent = True
-        self._cat_position = target_location
+        # moves the mouse in a random allowed direction. If none are allowed, the mouse doesn't move
+        possible_directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+        random.shuffle(possible_directions)
 
-    def _move_left(self):
-        target_location = (self._cat_position[0], self._cat_position[1] - 1)
-        if target_location[1] < 0:
-            return
-        current_cell = self._board[self._cat_position[0]][self._cat_position[1]]
-        if current_cell.walls[0]:
-            return
-        self._board[self._cat_position[0]][self._cat_position[1]].holds_agent = False
-        self._board[target_location[0]][target_location[1]].holds_agent = True
-        self._cat_position = target_location
+        for target_direction in possible_directions:
+            if self._move(np.array(target_direction), move_target=True):
+                return True
+        return False
 
-    def _move_up(self):
-        target_location = (self._cat_position[0] - 1, self._cat_position[1])
-        if target_location[0] < 0:
-            return
-        current_cell = self._board[self._cat_position[0]][self._cat_position[1]]
-        if current_cell.walls[2]:
-            return
-        self._board[self._cat_position[0]][self._cat_position[1]].holds_agent = False
-        self._board[target_location[0]][target_location[1]].holds_agent = True
-        self._cat_position = target_location
+    def _move(
+        self,
+        direction: Annotated[np.typing.NDArray[np.int_], (2,)],
+        move_target: bool = False,
+    ):
+        assert direction.tolist() in [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+        ], "Invalid direction"
 
-    def _move_down(self):
-        target_location = (self._cat_position[0] + 1, self._cat_position[1])
-        if target_location[0] >= self._board_size[0]:
+        """
+        direction must be a numpy array with one of the following values: (1, 0), (-1, 0), (0, 1), (0, -1)
+        The first value corresponds to the left-right direction, and the second value to the up-down direction.
+        Specifically:
+            - (0, 1) -> right
+            - (0, -1) -> left
+            - (1, 0) -> down
+            - (-1, 0) -> up
+        """
+
+        if not move_target:
+            location = self._cat_position
+        else:
+            location = self._target_position
+
+        possible_location = location + direction
+
+        # ensures that the cat and the mouse cannot move through the borders of the level
+        if not 0 <= possible_location[0] < self._board_size[0]:
             return
-        current_cell = self._board[self._cat_position[0]][self._cat_position[1]]
-        if current_cell.walls[3]:
+        if not 0 <= possible_location[1] < self._board_size[1]:
             return
-        self._board[self._cat_position[0]][self._cat_position[1]].holds_agent = False
-        self._board[target_location[0]][target_location[1]].holds_agent = True
-        self._cat_position = target_location
+
+        current_cell = self._board[location[0]][location[1]]
+
+        # ensures the cat cannot move through the walls withing the level
+        if not move_target:
+            ind = np.nonzero(direction)[0][0]
+            if direction[ind] == current_cell.walls[ind]:
+                return
+
+        # if none of the checks fail, update the locations of a cat/mouse
+        if not move_target:
+            self._board[location[0]][location[1]].holds_agent = False
+            self._board[possible_location[0]][possible_location[1]].holds_agent = True
+            self._cat_position = possible_location
+        else:
+            self._board[location[0]][location[1]].holds_target = False
+            self._board[possible_location[0]][possible_location[1]].holds_target = True
+            self._target_position = possible_location
+        return True
