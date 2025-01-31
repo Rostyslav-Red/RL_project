@@ -67,6 +67,30 @@ class Board:
         self._cat_position = cat_position
 
     # movement
+    def possible_moves(self) -> List[Annotated[np.typing.NDArray[np.int_], (2,)]]:
+        """
+        Returns a list of directions in which the cat can move from a current position.
+        :return:
+        """
+        possible_directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+        possible_destinations = [
+            self._cat_position + np.array(direction)
+            for direction in possible_directions
+        ]
+        updated_destinations = [np.array([0, 0])]
+
+        for direction, destination in zip(possible_directions, possible_destinations):
+            ind = np.nonzero(np.array(direction))[0][0]
+
+            if (
+                0 <= destination[0] < self._board_size[0]
+                and 0 <= destination[1] < self._board_size[1]
+                and direction[ind]
+                != self._board[self._cat_position[0]][self._cat_position[1]].walls[ind]
+            ):
+                updated_destinations.append(np.array(direction))
+        return updated_destinations
+
     def move(self, direction: Annotated[np.typing.NDArray[np.int_], (2,)]):
         # moves the cat in the specified direction
         if not self._move(direction):

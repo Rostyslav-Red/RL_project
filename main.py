@@ -42,6 +42,7 @@ b = Board(example_board)
 
 while True:
     print(b)
+    print(b.possible_moves())
     direction = input("Where would you like to go?\n:\t")
     match direction:
         case "right":
