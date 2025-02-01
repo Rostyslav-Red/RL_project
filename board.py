@@ -1,36 +1,38 @@
-from typing import List, Tuple, Annotated, Optional
+from typing import List, Tuple, Annotated, Optional, Any, SupportsFloat
 from unittest import case
-
+from gymnasium.core import ObsType, ActType, RenderFrame
 from cell import Cell
 from constants import *
 from copy import deepcopy
 from itertools import chain
 import numpy as np
 import random
+import gymnasium as gym
+from actions import Actions
+from functools import reduce
 
 
-class Board:
+class Board(gym.Env):
     def __init__(self, board: List[List[Cell]]):
+        super(Board, self).__init__()
+
+        # Make sure all rows have the same length
+        assert len(reduce(lambda x, y: x if len(x) == len(y) else [], board)) != 0, "Rows don't have the same length."
+        self._board_size: Tuple[int, int] = (len(board), len(board[0]))
+
         self._board: List[List[Cell]] = board
         self._cat_position: Optional[Annotated[np.typing.NDArray[np.int_], (2,)]] = None
         self._target_position: Optional[Annotated[np.typing.NDArray[np.int_], (2,)]] = (
             None
         )
 
-        for cell in list(chain.from_iterable(board)):
-            if cell.holds_agent:
-                self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
-                    np.array(cell.position)
-                )
-            if cell.holds_target:
-                self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
-                    np.array(cell.position)
-                )
-            if self._cat_position is not None and self._target_position is not None:
-                break
-        else:
-            raise ValueError("No cat or target found on the board")
-        self._board_size: Tuple[int, int] = (len(board), len(board[0]))
+        # Define Gymnasium Environment variables
+        self.action_space = gym.spaces.Discrete(len(Actions))
+
+        self.observation_space = gym.spaces.Dict({
+            "agent_pos": gym.spaces.Box(0, max(self._board_size) - 1, shape=(2,), dtype=int),
+            "target_pos": gym.spaces.Box(0, max(self._board_size) - 1, shape=(2,), dtype=int)
+        })
 
     # dunder methods
     def __str__(self):
@@ -51,6 +53,9 @@ class Board:
         result += "\n" + horizontal_line
 
         return result
+
+    def __getitem__(self, item: Annotated[np.typing.NDArray[np.int_], (2,)]):
+        return self._board[item[0]][item[1]]
 
     # getters
     @property
@@ -163,3 +168,78 @@ class Board:
             self._board[possible_location[0]][possible_location[1]].holds_target = True
             self._target_position = possible_location
         return True
+
+    # Gymnasium Support methods
+    def _get_obs(self) -> ObsType:
+        return {"agent_pos": self._cat_position,
+                "target_pos": self._target_position}
+
+    def _get_info(self) -> dict[str, Any]:
+        return {"Info": 0}
+
+    def reset(
+        self,
+        *,
+        seed: Optional[int] = None,
+        options: Optional[dict[str, Any]] = None,
+    ) -> tuple[ObsType, dict[str, Any]]:
+
+        if seed:
+            np.random.seed(seed)
+
+        # Position is given
+        if options and "cat_position" in options.keys() and "target_position" in options.keys():
+            self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = options["cat_position"]
+            self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = options["target_position"]
+
+        # Position not given, initialise randomly
+        else:
+            # Initialise cat position
+            self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array(
+                [np.random.randint(0, self._board_size[0]),
+                 np.random.randint(0, self._board_size[1])]
+            )
+            # Initialise target position
+            self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array(
+                [np.random.randint(0, self._board_size[0]),
+                 np.random.randint(0, self._board_size[1])]
+            )
+
+        self[self._cat_position].holds_agent = True
+        self[self._target_position].holds_target = True
+
+        return self._get_obs(), self._get_info()
+
+    def step(
+        self, action: ActType
+    ) -> Tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+
+        direction = np.array(Actions.get_by_index(action).value)
+        self.move(direction)
+
+        current_cell_type = cell_types[self[self._cat_position].cell_type]
+
+        observation = self._get_obs()
+        terminated = np.all(self._cat_position == self._target_position)
+        reward = rewards["caught"] if terminated else rewards[current_cell_type]
+        truncated = False
+        info = self._get_info()
+
+        return observation, reward, terminated, truncated, info
+
+    def render(self) -> RenderFrame | list[RenderFrame] | None:
+        return str(self)
+
+
+    # Factory method
+    @staticmethod
+    def board_factory(
+            board: List[List[Cell]],
+            *,
+            seed: Optional[int] = None,
+            options: Optional[dict[str, Any]] = None
+    ) -> Tuple['Board', ObsType, dict[str, Any]]:
+
+        board = Board(board)
+        obs, info = board.reset(seed=seed, options=options)
+        return board, obs, info
