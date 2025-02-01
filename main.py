@@ -9,17 +9,15 @@ import numpy as np
 if __name__ == "__main__":
     # An empty board of the board_size
     empty_board = [
-        [Cell(position=(j, i)) for i in range(board_size[1])] for j in range(board_size[0])
+        [Cell(position=(j, i)) for i in range(board_size[1])]
+        for j in range(board_size[0])
     ]
 
-    # A board from the example in the lecture
+    # A custom board
     example_board = deepcopy(empty_board)
 
     # Define a cell that holds an agent
-    options = {
-        "cat_position": np.array([0, 0]),
-        "target_position": np.array([3, 3])
-    }
+    options = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
 
     # Define the locations of the trees
     example_board[0][1].cell_type = 1

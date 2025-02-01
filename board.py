@@ -17,7 +17,9 @@ class Board(gym.Env):
         super(Board, self).__init__()
 
         # Make sure all rows have the same length
-        assert len(reduce(lambda x, y: x if len(x) == len(y) else [], board)) != 0, "Rows don't have the same length."
+        assert (
+            len(reduce(lambda x, y: x if len(x) == len(y) else [], board)) != 0
+        ), "Rows don't have the same length."
         self._board_size: Tuple[int, int] = (len(board), len(board[0]))
 
         self._board: List[List[Cell]] = board
@@ -29,10 +31,16 @@ class Board(gym.Env):
         # Define Gymnasium Environment variables
         self.action_space = gym.spaces.Discrete(len(Actions))
 
-        self.observation_space = gym.spaces.Dict({
-            "agent_pos": gym.spaces.Box(0, max(self._board_size) - 1, shape=(2,), dtype=int),
-            "target_pos": gym.spaces.Box(0, max(self._board_size) - 1, shape=(2,), dtype=int)
-        })
+        self.observation_space = gym.spaces.Dict(
+            {
+                "agent_pos": gym.spaces.Box(
+                    0, max(self._board_size) - 1, shape=(2,), dtype=int
+                ),
+                "target_pos": gym.spaces.Box(
+                    0, max(self._board_size) - 1, shape=(2,), dtype=int
+                ),
+            }
+        )
 
     # dunder methods
     def __str__(self):
@@ -171,8 +179,7 @@ class Board(gym.Env):
 
     # Gymnasium Support methods
     def _get_obs(self) -> ObsType:
-        return {"agent_pos": self._cat_position,
-                "target_pos": self._target_position}
+        return {"agent_pos": self._cat_position, "target_pos": self._target_position}
 
     def _get_info(self) -> dict[str, Any]:
         return {"Info": 0}
@@ -188,21 +195,35 @@ class Board(gym.Env):
             np.random.seed(seed)
 
         # Position is given
-        if options and "cat_position" in options.keys() and "target_position" in options.keys():
-            self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = options["cat_position"]
-            self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = options["target_position"]
+        if (
+            options
+            and "cat_position" in options.keys()
+            and "target_position" in options.keys()
+        ):
+            self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = options[
+                "cat_position"
+            ]
+            self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
+                options["target_position"]
+            )
 
         # Position not given, initialise randomly
         else:
             # Initialise cat position
             self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array(
-                [np.random.randint(0, self._board_size[0]),
-                 np.random.randint(0, self._board_size[1])]
+                [
+                    np.random.randint(0, self._board_size[0]),
+                    np.random.randint(0, self._board_size[1]),
+                ]
             )
             # Initialise target position
-            self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array(
-                [np.random.randint(0, self._board_size[0]),
-                 np.random.randint(0, self._board_size[1])]
+            self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
+                np.array(
+                    [
+                        np.random.randint(0, self._board_size[0]),
+                        np.random.randint(0, self._board_size[1]),
+                    ]
+                )
             )
 
         self[self._cat_position].holds_agent = True
@@ -230,15 +251,14 @@ class Board(gym.Env):
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         return str(self)
 
-
     # Factory method
     @staticmethod
     def board_factory(
-            board: List[List[Cell]],
-            *,
-            seed: Optional[int] = None,
-            options: Optional[dict[str, Any]] = None
-    ) -> Tuple['Board', ObsType, dict[str, Any]]:
+        board: List[List[Cell]],
+        *,
+        seed: Optional[int] = None,
+        options: Optional[dict[str, Any]] = None,
+    ) -> Tuple["Board", ObsType, dict[str, Any]]:
 
         board = Board(board)
         obs, info = board.reset(seed=seed, options=options)

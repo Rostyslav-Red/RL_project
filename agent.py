@@ -14,7 +14,9 @@ class Agent:
         self._obs: Optional[ObsType] = None
         self._terminated = False
 
-    def __generate_move(self) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+    def __generate_move(
+        self,
+    ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         move = self._generate_move_helper()
         observation, reward, terminated, truncated, info = self.__env.step(move)
 
@@ -22,7 +24,13 @@ class Agent:
         self._obs = observation
         self._terminated = terminated
 
-        return observation, reward, terminated, truncated, info,
+        return (
+            observation,
+            reward,
+            terminated,
+            truncated,
+            info,
+        )
 
     def run_agent(self, initial_obs: ObsType) -> SupportsFloat:
         self._obs = initial_obs
@@ -66,9 +74,12 @@ class RandomAgent(Agent):
 
 
 class HumanAgent(Agent):
+    def __init__(self, env: gym.Env):
+        super().__init__(env)
+        print(self.get_env_str())
 
     def _generate_move_helper(self) -> int:
-        print(self.get_env_str())
+        # print(self.get_env_str())
         direction = input("Where would you like to go (left/right/up/down/stay)?\n:\t")
         match direction:
             case "right":
@@ -81,4 +92,3 @@ class HumanAgent(Agent):
                 return 3
             case _:
                 return 4
-
