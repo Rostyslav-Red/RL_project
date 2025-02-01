@@ -20,7 +20,7 @@ class Agent:
 
         self.__reward += reward
         self._obs = observation
-        self._terminated = False
+        self._terminated = terminated
 
         return observation, reward, terminated, truncated, info,
 
@@ -31,6 +31,8 @@ class Agent:
             print(self.__env)
         return self.reward
 
+    def get_env_str(self) -> str:
+        return str(self.__env)
 
     # Abstract methods
     @abstractmethod
@@ -61,4 +63,22 @@ class RandomAgent(Agent):
 
     def _generate_move_helper(self) -> int:
         return self._action_space.sample()
+
+
+class HumanAgent(Agent):
+
+    def _generate_move_helper(self) -> int:
+        print(self.get_env_str())
+        direction = input("Where would you like to go (left/right/up/down/stay)?\n:\t")
+        match direction:
+            case "right":
+                return 2
+            case "left":
+                return 0
+            case "up":
+                return 1
+            case "down":
+                return 3
+            case _:
+                return 4
 

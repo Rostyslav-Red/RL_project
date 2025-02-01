@@ -1,26 +1,9 @@
-from agent import RandomAgent, Agent
+from agent import RandomAgent, Agent, HumanAgent
 from board import Board
 from constants import *
 from cell import Cell
 from copy import deepcopy
 import numpy as np
-
-def run_human_controlled_agent(b: Board):
-    while True:
-        print(b)
-        print(b.possible_moves())
-        direction = input("Where would you like to go?\n:\t")
-        match direction:
-            case "right":
-                b.move(np.array((0, 1)))
-            case "left":
-                b.move(np.array((0, -1)))
-            case "up":
-                b.move(np.array((-1, 0)))
-            case "down":
-                b.move(np.array((1, 0)))
-            case _:
-                b.move(np.array((0, 0)))
 
 
 if __name__ == "__main__":
@@ -60,5 +43,6 @@ if __name__ == "__main__":
 
     b, obs, _ = Board.board_factory(example_board, options=options)
 
+    # Possible agents: HumanAgent, RandomAgent
     agent = RandomAgent(b)
-    agent.run_agent(obs)
+    print(f"Obtained reward: {agent.run_agent(obs)}")
