@@ -1,10 +1,7 @@
 from typing import List, Tuple, Annotated, Optional, Any, SupportsFloat
-from unittest import case
 from gymnasium.core import ObsType, ActType, RenderFrame
 from cell import Cell
 from constants import *
-from copy import deepcopy
-from itertools import chain
 import numpy as np
 import random
 import gymnasium as gym
@@ -38,7 +35,7 @@ class Board(gym.Env):
                 ),
                 "target_pos": gym.spaces.Box(
                     0, max(self._board_size) - 1, shape=(2,), dtype=int
-                ),
+                )
             }
         )
 
@@ -199,6 +196,8 @@ class Board(gym.Env):
             options
             and "cat_position" in options.keys()
             and "target_position" in options.keys()
+            and isinstance(options["cat_position"], np.ndarray)
+            and isinstance(options["target_position"], np.ndarray)
         ):
             self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = options[
                 "cat_position"
