@@ -7,6 +7,7 @@ import random
 import gymnasium as gym
 from actions import Actions
 from functools import reduce
+import warnings
 
 
 class Board(gym.Env):
@@ -17,7 +18,7 @@ class Board(gym.Env):
         assert (
             len(reduce(lambda x, y: x if len(x) == len(y) else [], board)) != 0
         ), "Rows don't have the same length."
-        self._board_size: Tuple[int, int] = (len(board), len(board[0]))
+        self._board_size: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array([len(board), len(board[0])])
 
         self._board: List[List[Cell]] = board
         self._cat_position: Optional[Annotated[np.typing.NDArray[np.int_], (2,)]] = None
@@ -31,10 +32,10 @@ class Board(gym.Env):
         self.observation_space = gym.spaces.Dict(
             {
                 "agent_pos": gym.spaces.Box(
-                    0, max(self._board_size) - 1, shape=(2,), dtype=int
+                    0, np.max(self._board_size) - 1, shape=(2,), dtype=int
                 ),
                 "target_pos": gym.spaces.Box(
-                    0, max(self._board_size) - 1, shape=(2,), dtype=int
+                    0, np.max(self._board_size) - 1, shape=(2,), dtype=int
                 )
             }
         )
@@ -101,10 +102,9 @@ class Board(gym.Env):
                 updated_destinations.append(np.array(direction))
         return updated_destinations
 
-    def move(self, direction: Annotated[np.typing.NDArray[np.int_], (2,)]):
+    def move(self, direction: Annotated[np.typing.NDArray[np.int_], (2,)]) -> bool:
         # moves the cat in the specified direction
-        if not self._move(direction):
-            return False
+        moved = self._move(direction)
 
         # moves the mouse in a random allowed direction. If none are allowed, the mouse doesn't move
         possible_directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
@@ -112,20 +112,19 @@ class Board(gym.Env):
 
         for target_direction in possible_directions:
             if self._move(np.array(target_direction), move_target=True):
-                return True
-        return False
+                return moved
+        return moved
 
     def _move(
         self,
         direction: Annotated[np.typing.NDArray[np.int_], (2,)],
         move_target: bool = False,
-    ):
+    ) -> bool:
         assert direction.tolist() in [
             [1, 0],
             [-1, 0],
             [0, 1],
             [0, -1],
-            [0, 0],
         ], "Invalid direction"
 
         """
@@ -146,10 +145,8 @@ class Board(gym.Env):
         possible_location = location + direction
 
         # ensures that the cat and the mouse cannot move through the borders of the level
-        if not 0 <= possible_location[0] < self._board_size[0]:
-            return
-        if not 0 <= possible_location[1] < self._board_size[1]:
-            return
+        if not ((np.zeros(2,) <= possible_location).all() and (possible_location < self._board_size).all()):
+            return False
 
         current_cell = self._board[location[0]][location[1]]
 
@@ -157,7 +154,7 @@ class Board(gym.Env):
         if not move_target and not direction.tolist() == [0, 0]:
             ind = np.nonzero(direction)[0][0]
             if direction[ind] == current_cell.walls[ind]:
-                return
+                return False
         # ensures the mouse cannot go on the tree cell
         else:
             if self._board[possible_location[0]][possible_location[1]].cell_type == 1:
@@ -191,23 +188,28 @@ class Board(gym.Env):
         if seed:
             np.random.seed(seed)
 
+        position_reset = False
         # Position is given
         if (
             options
             and "cat_position" in options.keys()
             and "target_position" in options.keys()
-            and isinstance(options["cat_position"], np.ndarray)
-            and isinstance(options["target_position"], np.ndarray)
         ):
-            self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = options[
-                "cat_position"
-            ]
-            self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
-                options["target_position"]
-            )
+            if  (isinstance(options["cat_position"], np.ndarray)
+                 and isinstance(options["target_position"], np.ndarray)
+            ):
+                self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = options[
+                    "cat_position"
+                ]
+                self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
+                    options["target_position"]
+                )
+                position_reset = True
+            else:
+                warnings.warn("Options dictionary provided but positions are not np.ndarray. Randomising positions instead.")
 
         # Position not given, initialise randomly
-        else:
+        if not position_reset:
             # Initialise cat position
             self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array(
                 [

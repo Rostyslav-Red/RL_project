@@ -17,7 +17,7 @@ if __name__ == "__main__":
     example_board = deepcopy(empty_board)
 
     # Define a cell that holds an agent
-    options = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
+    options = {"cat_position": 1, "target_position": np.array([3, 3])}
 
     # Define the locations of the trees
     example_board[0][1].cell_type = 1
