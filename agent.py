@@ -36,7 +36,6 @@ class Agent:
         self._obs = initial_obs
         while not self.terminated:
             self.__generate_move()
-            print(self.__env)
         return self.reward
 
     def get_env_str(self) -> str:

@@ -11,6 +11,14 @@ import warnings
 
 
 class Board(gym.Env):
+    """
+    Abstract Gymnasium environment for a board with a cat and a mouse. Cannot be registered using gymnasium.register().
+    Inherit from this class and create a board in its constructor, making sure the child's constructor does not take
+    arguments. These children can then be registered.
+    """
+    metadata = {"render_modes": "human"}
+    render_mode = "human"
+
     def __init__(self, board: List[List[Cell]]):
         super(Board, self).__init__()
 
@@ -247,6 +255,9 @@ class Board(gym.Env):
         truncated = False
         info = self._get_info()
 
+        if self.render_mode == "human":
+            print(self)
+
         return observation, reward, terminated, truncated, info
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
@@ -264,3 +275,35 @@ class Board(gym.Env):
         board = Board(board)
         obs, info = board.reset(seed=seed, options=options)
         return board, obs, info
+
+
+class ConfiguredBoard(Board):
+
+    def __init__(self):
+        # An empty board of the board_size
+        example_board = [
+            [Cell(position=(j, i)) for i in range(board_size[1])]
+            for j in range(board_size[0])
+        ]
+
+        # Define the locations of the trees
+        example_board[0][1].cell_type = 1
+        example_board[0][3].cell_type = 1
+        example_board[2][0].cell_type = 1
+        example_board[2][3].cell_type = 1
+
+        # Define the locations of the walls
+        example_board[0][0].walls = np.array([0, 1])
+        example_board[0][1].walls = np.array([0, -1])
+        example_board[0][2].walls = np.array([0, 1])
+        example_board[0][3].walls = np.array([0, -1])
+        example_board[1][2].walls = np.array([1, 0])
+        example_board[2][2].walls = np.array([-1, 0])
+        example_board[2][0].walls = np.array([0, 1])
+        example_board[2][1].walls = np.array([1, -1])
+        example_board[3][1].walls = np.array([-1, 0])
+        example_board[2][3].walls = np.array([1, 0])
+        example_board[3][2].walls = np.array([0, 1])
+        example_board[3][3].walls = np.array([-1, -1])
+
+        super().__init__(example_board)
