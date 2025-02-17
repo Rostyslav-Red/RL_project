@@ -47,6 +47,8 @@ class Board(gym.Env):
             }
         )
 
+        self.rng = np.random.default_rng()
+
     # dunder methods
     def __str__(self):
         horizontal_line = " — " + "— — — " * board_size[1]
@@ -115,7 +117,7 @@ class Board(gym.Env):
 
         # moves the mouse in a random allowed direction. If none are allowed, the mouse doesn't move
         possible_directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
-        np.random.shuffle(possible_directions)
+        self.rng.shuffle(possible_directions)
 
         for target_direction in possible_directions:
             if self._move(np.array(target_direction), move_target=True):
@@ -193,7 +195,7 @@ class Board(gym.Env):
     ) -> tuple[ObsType, dict[str, Any]]:
 
         if seed:
-            np.random.seed(seed)
+            self.rng = np.random.default_rng(seed)
 
         position_reset = False
         # Position is given
@@ -222,16 +224,16 @@ class Board(gym.Env):
             # Initialise cat position
             self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array(
                 [
-                    np.random.randint(0, self._board_size[0]),
-                    np.random.randint(0, self._board_size[1]),
+                    self.rng.integers(0, self._board_size[0]),
+                    self.rng.integers(0, self._board_size[1]),
                 ]
             )
             # Initialise target position
             self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
                 np.array(
                     [
-                        np.random.randint(0, self._board_size[0]),
-                        np.random.randint(0, self._board_size[1]),
+                        self.rng.integers(0, self._board_size[0]),
+                        self.rng.integers(0, self._board_size[1]),
                     ]
                 )
             )
