@@ -4,6 +4,8 @@ import gymnasium as gym
 from gymnasium.core import ObsType
 import numpy as np
 
+from policy import Policy
+
 
 class Agent:
     def __init__(self, env: gym.Env):
@@ -72,13 +74,22 @@ class RandomAgent(Agent):
         return self._action_space.sample()
 
 
+class PolicyAgent(Agent):
+
+    def __init__(self, env: gym.Env, policy: Optional[Policy | None] = None):
+        super().__init__(env)
+        self.__policy = policy if policy else Policy(env)
+
+    def _generate_move_helper(self) -> int:
+        return self.__policy[self._obs]
+
+
 class HumanAgent(Agent):
     def __init__(self, env: gym.Env):
         super().__init__(env)
         print(self.get_env_str())
 
     def _generate_move_helper(self) -> int:
-        # print(self.get_env_str())
         direction = input("Where would you like to go (left/right/up/down/stay)?\n:\t")
         match direction:
             case "right":

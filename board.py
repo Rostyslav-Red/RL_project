@@ -3,7 +3,6 @@ from gymnasium.core import ObsType, ActType, RenderFrame
 from cell import Cell
 from constants import *
 import numpy as np
-import random
 import gymnasium as gym
 from actions import Actions
 from functools import reduce
@@ -116,7 +115,7 @@ class Board(gym.Env):
 
         # moves the mouse in a random allowed direction. If none are allowed, the mouse doesn't move
         possible_directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
-        random.shuffle(possible_directions)
+        np.random.shuffle(possible_directions)
 
         for target_direction in possible_directions:
             if self._move(np.array(target_direction), move_target=True):
@@ -203,6 +202,7 @@ class Board(gym.Env):
             and "cat_position" in options.keys()
             and "target_position" in options.keys()
         ):
+            # Position is valid
             if  (isinstance(options["cat_position"], np.ndarray)
                  and isinstance(options["target_position"], np.ndarray)
             ):
@@ -213,10 +213,11 @@ class Board(gym.Env):
                     options["target_position"]
                 )
                 position_reset = True
+            # Position is given but invalid, randomise instead.
             else:
                 warnings.warn("Options dictionary provided but positions are not np.ndarray. Randomising positions instead.")
 
-        # Position not given, initialise randomly
+        # Position not given/invalid, initialise randomly
         if not position_reset:
             # Initialise cat position
             self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array(
@@ -243,18 +244,20 @@ class Board(gym.Env):
     def step(
         self, action: ActType
     ) -> Tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
-
+        # Move agent in given direction.
         direction = np.array(Actions.get_by_index(action).value)
         self.move(direction)
 
         current_cell_type = cell_types[self[self._cat_position].cell_type]
 
+        # Create return variables
         observation = self._get_obs()
         terminated = np.all(self._cat_position == self._target_position)
         reward = rewards["caught"] if terminated else rewards[current_cell_type]
         truncated = False
         info = self._get_info()
 
+        # Print board if rendering is set to human.
         if self.render_mode == "human":
             print(self)
 
@@ -262,19 +265,6 @@ class Board(gym.Env):
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         return str(self)
-
-    # Factory method
-    @staticmethod
-    def board_factory(
-        board: List[List[Cell]],
-        *,
-        seed: Optional[int] = None,
-        options: Optional[dict[str, Any]] = None,
-    ) -> Tuple["Board", ObsType, dict[str, Any]]:
-
-        board = Board(board)
-        obs, info = board.reset(seed=seed, options=options)
-        return board, obs, info
 
 
 class ConfiguredBoard(Board):
