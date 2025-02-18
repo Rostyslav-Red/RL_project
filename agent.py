@@ -90,7 +90,7 @@ class HumanAgent(Agent):
         print(self.get_env_str())
 
     def _generate_move_helper(self) -> int:
-        direction = input("Where would you like to go (left/right/up/down/stay)?\n:\t")
+        direction = input("Where would you like to go (left/right/up/down)?\n:\t")
         match direction:
             case "right":
                 return 2
@@ -101,4 +101,5 @@ class HumanAgent(Agent):
             case "down":
                 return 3
             case _:
-                return 4
+                print("Invalid direction. Please try again:")
+                return self._generate_move_helper()

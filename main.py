@@ -9,8 +9,20 @@ if __name__ == "__main__":
     options = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
 
     board = gym.make("Board-v0")
+
+    # !!! the following block of code is only for demonstrating __policy_evaluation(). Remove after viewing
+    board.reset(
+        options={"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
+    )
+    p = Policy(board, seed=0)
+    print(p.items())
+    print(p._Policy__policy_evaluation())
+    # !!! the of the block
+
     obs, _ = board.reset(seed=1)
 
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
     agent = PolicyAgent(board, Policy(board, seed=1))
+    # agent = HumanAgent(board)
+
     print(f"Obtained reward: {agent.run_agent(obs)}")

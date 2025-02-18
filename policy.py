@@ -4,6 +4,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import flatten_space, flatten
 from gymnasium.core import ObsType, ActType
+from board import Board
+from constants import *
 
 
 class Policy:
@@ -11,7 +13,12 @@ class Policy:
     A policy is a fancy dictionary that maps a flattened observation to an action.
     """
 
-    def __init__(self, environment: gym.Env, policy: Optional[dict] = None, seed: Optional[int | None] = None):
+    def __init__(
+        self,
+        environment: Board | gym.Env,
+        policy: Optional[dict] = None,
+        seed: Optional[int | None] = None,
+    ):
         """
         Constructs the policy.
 
@@ -19,6 +26,8 @@ class Policy:
         @param policy: Optional, a dictionary mapping each observation in the environment to an action in the action_space
                        If not present, creates a random policy.
         """
+        self.environment = environment
+
         self._obs_space = environment.observation_space
 
         self._act_space = environment.action_space
@@ -28,6 +37,67 @@ class Policy:
             self._obs_space.seed(seed)
 
         self._policy = policy if policy else self.__initialise_randomly()
+
+    def __policy_evaluation(
+        self, discount=0.1, stopping_criterion: float = 0.001
+    ) -> dict[tuple, ActType]:
+        policy = self._policy if self._policy else self.__initialise_randomly()
+        all_v = {key: 0 for key in policy.keys()}
+        delta = np.inf
+        directions = {0: (0, -1), 1: (-1, 0), 2: (0, 1), 3: (1, 0)}
+
+        while delta >= stopping_criterion:
+            delta = 0
+            new_all_v = {}
+            for state in policy:
+                if state[:2] == state[2:]:
+                    new_all_v[state] = all_v[state]
+                    continue
+                v = all_v[state]
+                possible_cat_positions = (
+                    self.environment.env.env.possible_cat_destinations(
+                        np.array(state[:2])
+                    )
+                )
+                suggested_cat_position = np.array(
+                    [
+                        state[0] + directions[policy[state]][0],
+                        state[1] + directions[policy[state]][1],
+                    ]
+                )
+
+                if not any(
+                    np.array_equal(suggested_cat_position, pos)
+                    for pos in possible_cat_positions
+                ):
+                    suggested_cat_position = state[:2]
+                possible_states = tuple(
+                    (suggested_cat_position[0], suggested_cat_position[1])
+                    + (int(dest[0]), int(dest[1]))
+                    for dest in self.environment.env.env.possible_mouse_destinations(
+                        np.array(state[2:])
+                    )
+                )
+                reward = (
+                    rewards[
+                        cell_types[
+                            self.environment.env.env[state[0], state[1]].cell_type
+                        ]
+                    ]
+                    if state[:2] != state[2:]
+                    else rewards["caught"]
+                )
+                state_chance = 1 / len(possible_states)
+                new_v = sum(
+                    tuple(
+                        state_chance * (reward + discount * all_v[new_state])
+                        for new_state in possible_states
+                    )
+                )
+                delta = max(delta, abs(new_v - v))
+                new_all_v[state] = new_v
+            all_v = new_all_v
+        return all_v
 
     def __initialise_randomly(self) -> dict[tuple, ActType]:
         """
@@ -70,7 +140,7 @@ class Policy:
 
     @staticmethod
     @cache
-    def __get_keys(bounds: tuple[tuple[int, ...]]) -> tuple[tuple[int,...]]:
+    def __get_keys(bounds: tuple[tuple[int, ...]]) -> tuple[tuple[int, ...]]:
         """
         Gets all possible combinations of observations as a tuple of tuples.
 
@@ -89,7 +159,7 @@ class Policy:
         return final
 
     @staticmethod
-    def get_keys(obs_space: gym.Space) -> tuple[tuple[int,...]]:
+    def get_keys(obs_space: gym.Space) -> tuple[tuple[int, ...]]:
         """
         Gets all possible combinations of observations as a tuple of tuples.
 
@@ -97,8 +167,12 @@ class Policy:
         @return: All possible observations as a tuple of tuples, each tuple having length bounds.shape[0].
         """
         if not obs_space.is_np_flattenable:
-            raise NotImplementedError("Policy keys for non-flattenable observation are not defined.")
+            raise NotImplementedError(
+                "Policy keys for non-flattenable observation are not defined."
+            )
 
         flat_obs_space = flatten_space(obs_space)
-        bounds = tuple(map(tuple, np.stack((flat_obs_space.low, flat_obs_space.high)).T))
+        bounds = tuple(
+            map(tuple, np.stack((flat_obs_space.low, flat_obs_space.high)).T)
+        )
         return Policy.__get_keys(bounds)
