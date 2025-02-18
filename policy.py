@@ -120,6 +120,21 @@ class Policy:
         key = tuple(flatten(self._obs_space, observation))
         return self._policy[key]
 
+    def __setitem__(self, key: ObsType, value: ActType) -> None:
+        """
+        Sets the action an observation maps to, to a different value.
+
+        @param key: The observation for which the action is changed.
+        @param value: The new action.
+        """
+        self._policy[key] = value
+
+    def __iter__(self):
+        """
+        @return: In iterator over the keys of the policy.
+        """
+        return self._policy.__iter__()
+
     def keys(self):
         """
         @return: All possible observations of the environment as flattened tuples.
