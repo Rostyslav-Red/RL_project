@@ -1,5 +1,7 @@
-from typing import List, Tuple, Annotated, Optional, Any, SupportsFloat
+from typing import List, Tuple, Annotated, Optional, Any, SupportsFloat, Dict, Union
 from gymnasium.core import ObsType, ActType, RenderFrame
+
+import actions
 from cell import Cell
 from constants import *
 import numpy as np
@@ -50,6 +52,14 @@ class Board(gym.Env):
             }
         )
 
+        # the dynamics of the environment. Read find_dynamics() docs for more info
+        self.P: Dict[
+            Tuple[Tuple[int, int, int, int], int], Tuple[Tuple[int, int, int, int], ...]
+        ] = self.find_dynamics()
+
+        # the reward space of the environment. Read find_reward_space() docs for more info
+        self.R: Dict[Tuple[int, int, int, int], float] = self.find_reward_space()
+
         self.rng = np.random.default_rng()
 
     # dunder methods
@@ -72,7 +82,9 @@ class Board(gym.Env):
 
         return "\n" + result
 
-    def __getitem__(self, item: Annotated[np.typing.NDArray[np.int_], (2,)]):
+    def __getitem__(
+        self, item: Union[Annotated[np.typing.NDArray[np.int_], (2,)], Tuple[int, int]]
+    ):
         return self._board[item[0]][item[1]]
 
     # getters
@@ -305,6 +317,141 @@ class Board(gym.Env):
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         return str(self)
 
+    # Other
+    def find_dynamics(
+        self,
+    ) -> Dict[
+        Tuple[Tuple[int, int, int, int], int], Tuple[Tuple[int, int, int, int], ...]
+    ]:
+        """
+        Returns a variable, representing the dynamics of the environment in the following format:
+        {((0, 1, 2, 3), 2) : ((0, 1, 2, 3), (0, 1, 2, 3), ...)}
+        where the key is a tuple of a current state of the board* and an integer representing the action (0-3).
+        The board state is a tuple, consisting of the coordinates of the cat (first two integers), and the
+        coordinates of the target (last two integers).
+        The values of the dictionary are a tuple of tuples, where each inner tuple represents a board state, which
+        can occur from taking an action (from the key) in a state (in the key)
+        """
+        all_states = []
+        result = {}
+
+        # create the tuples, representing all positions (4x4 x 4x4)
+        for x1 in range(0, self._board_size[0]):
+            for y1 in range(0, self._board_size[1]):
+                for x2 in range(0, self._board_size[0]):
+                    for y2 in range(0, self._board_size[1]):
+                        all_states.append((x1, y1, x2, y2))
+
+        # define the key structure of the final dictionary
+        for state in all_states:
+            for direction in range(4):
+                result[(state, direction)] = ()
+
+        # defining the values of the final dictionary
+        for state, action in result:
+            # if we're in a terminal state, assign an empty tuple as a value
+            if state[:2] == state[2:]:
+                result[(state, action)] = tuple()
+                continue
+
+            # a flag determining whether a cat actually moves when taking this action (or if it bumps into the wall)
+            valid_cat_move = True
+            # the coordinates of the cat after taking a certain action
+            landing_x = state[0] + directions[action][0]
+            landing_y = state[1] + directions[action][1]
+
+            # if given action moves the cat beyond the bounds of the board, the flag is set to False
+            if landing_x < 0 or landing_x >= self._board_size[0]:
+                valid_cat_move = False
+            if landing_y < 0 or landing_y >= self._board_size[1]:
+                valid_cat_move = False
+
+            # if the cat is trying to move into a wall, the flag is set to False
+            cat_cell = self[state[0], state[1]]
+
+            if (
+                directions[action][0] != 0
+                and cat_cell.walls[0] == directions[action][0]
+                or directions[action][1] != 0
+                and cat_cell.walls[1] == directions[action][1]
+            ):
+                valid_cat_move = False
+
+            # define the coordinates of the cat position after taking a move
+            if valid_cat_move:
+                cat_pos = (landing_x, landing_y)
+            else:
+                cat_pos = (state[0], state[1])
+
+            # find all the possible target positions following the given target position
+            possible_target_locations = []
+            for target_action in range(4):
+                # the coordinates of the target after 'taking' a certain action
+                target_landing_x = state[2] + directions[target_action][0]
+                target_landing_y = state[3] + directions[target_action][1]
+
+                # if the action results in the target moving beyond the scope of the board, move onto the next action
+                if target_landing_x < 0 or target_landing_x >= self._board_size[0]:
+                    continue
+                if target_landing_y < 0 or target_landing_y >= self._board_size[1]:
+                    continue
+                # if the action results in the target being in a tree, move onto the next action
+                if self[target_landing_x, target_landing_y].cell_type == 1:
+                    continue
+
+                # otherwise, add the resulting target location to the list of possible locations
+                possible_target_locations.append((target_landing_x, target_landing_y))
+
+            # if the mouse can't move at all, its only possible position is its current position
+            if not possible_target_locations:
+                possible_target_locations.append((state[2], state[3]))
+
+            # determine the value of the dictionary
+            value = tuple(
+                cat_pos + target_pos for target_pos in possible_target_locations
+            )
+
+            # set this value to the appropriate key in the final dictionary
+            result[(state, action)] = value
+        return result
+
+    def find_reward_space(self) -> Dict[Tuple[int, int, int, int], float]:
+        """
+        Finds a reward space of the environment in the following format:
+        {(1, 2, 3, 4): 5}
+        where the key is a tuple representing a current state of the board*.
+        The board state is a tuple, consisting of the coordinates of the cat (first two integers), and the
+        coordinates of the target (last two integers).
+        The values of the dictionary are the rewards, associated with the board state from key.
+        :return:
+        """
+        result = {}
+        all_states = set()
+
+        # extracting all unique states from the P of the environment
+        for state, _ in self.P:
+            all_states.add(state)
+        all_states = tuple(all_states)
+
+        # assigning a reward to each state
+        for state in all_states:
+            if state[:2] == state[2:]:
+                reward = rewards["caught"]
+                result[state] = reward
+                continue
+
+            if self[state[0], state[1]].cell_type == 0:
+                reward = rewards["empty"]
+                result[state] = reward
+                continue
+
+            if self[state[0], state[1]].cell_type == 1:
+                reward = rewards["tree"]
+                result[state] = reward
+                continue
+
+        return result
+
 
 class ConfiguredBoard(Board):
 
@@ -314,7 +461,6 @@ class ConfiguredBoard(Board):
             [Cell(position=(j, i)) for i in range(board_size[1])]
             for j in range(board_size[0])
         ]
-
         # Define the locations of the trees
         example_board[0][1].cell_type = 1
         example_board[0][3].cell_type = 1

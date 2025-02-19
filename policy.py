@@ -1,5 +1,5 @@
 from functools import cache
-from typing import Optional
+from typing import Optional, Dict, Tuple
 import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import flatten_space, flatten
@@ -15,7 +15,7 @@ class Policy:
 
     def __init__(
         self,
-        environment: Board | gym.Env,
+        environment: gym.Env,
         policy: Optional[dict] = None,
         seed: Optional[int | None] = None,
     ):
@@ -40,60 +40,51 @@ class Policy:
 
     def __policy_evaluation(
         self, discount=0.1, stopping_criterion: float = 0.001
-    ) -> dict[tuple, ActType]:
-        policy = self._policy if self._policy else self.__initialise_randomly()
-        all_v = {key: 0 for key in policy.keys()}
-        delta = np.inf
-        directions = {0: (0, -1), 1: (-1, 0), 2: (0, 1), 3: (1, 0)}
+    ) -> Dict[Tuple[int, int, int, int], float]:
+        """
+        Uses an iterative algorithm to evaluate the value (v) of each state
+        :param discount: Determines how much the agent values future rewards over the immediate rewards
+        :param stopping_criterion: the threshold that determines when the algorithm stops
+        :return: a dictionary mapping each observation in the environment to an associated value
+        """
 
+        # Describes the dynamics of the environment. Watch Board.P
+        P = self.environment.env.env.P
+        # Described the reward space of hte environment. Watch Board.R
+        R = self.environment.env.env.R
+
+        # create the policy if it's not created yet
+        policy = self._policy if self._policy else self.__initialise_randomly()
+
+        # create a dictionary where the keys are all possible states of the environment
+        all_v = {key: 0 for key in policy.keys()}
+
+        # relates to the accuracy of our V. Is compared to stopping_criterion
+        delta = np.inf
+
+        # refrain all the values in the dictionary, until the difference between iterations is larger
+        # than the threshold for the accuracy
         while delta >= stopping_criterion:
             delta = 0
+            # the dictionary for the updated prediction for all state values
             new_all_v = {}
-            for state in policy:
-                if state[:2] == state[2:]:
-                    new_all_v[state] = all_v[state]
-                    continue
-                v = all_v[state]
-                possible_cat_positions = (
-                    self.environment.env.env.possible_cat_destinations(
-                        np.array(state[:2])
-                    )
-                )
-                suggested_cat_position = np.array(
-                    [
-                        state[0] + directions[policy[state]][0],
-                        state[1] + directions[policy[state]][1],
-                    ]
-                )
 
-                if not any(
-                    np.array_equal(suggested_cat_position, pos)
-                    for pos in possible_cat_positions
-                ):
-                    suggested_cat_position = state[:2]
-                possible_states = tuple(
-                    (suggested_cat_position[0], suggested_cat_position[1])
-                    + (int(dest[0]), int(dest[1]))
-                    for dest in self.environment.env.env.possible_mouse_destinations(
-                        np.array(state[2:])
-                    )
-                )
-                reward = (
-                    rewards[
-                        cell_types[
-                            self.environment.env.env[state[0], state[1]].cell_type
-                        ]
-                    ]
-                    if state[:2] != state[2:]
-                    else rewards["caught"]
-                )
-                state_chance = 1 / len(possible_states)
+            for state, action in policy.items():
+                # if we are in a terminal state, it's value is always 0
+                if not P[(state, action)]:
+                    new_all_v[state] = 0
+                    continue
+
+                v = all_v[state]
+                state_chance = 1 / len(P[state, action])
+
                 new_v = sum(
                     tuple(
-                        state_chance * (reward + discount * all_v[new_state])
-                        for new_state in possible_states
+                        state_chance * (R[new_state] + discount * all_v[new_state])
+                        for new_state in P[(state, action)]
                     )
                 )
+
                 delta = max(delta, abs(new_v - v))
                 new_all_v[state] = new_v
             all_v = new_all_v
