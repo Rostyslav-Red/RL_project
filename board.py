@@ -18,11 +18,12 @@ class Board(gym.Env):
     arguments. These children can then be registered.
     """
 
-    metadata = {"render_modes": "human"}
-    render_mode = "human"
+    metadata = {"render_modes": ("human",)}
 
-    def __init__(self, board: List[List[Cell]]):
+    def __init__(self, board: List[List[Cell]], render_mode: str):
         super(Board, self).__init__()
+
+        self.render_mode = render_mode
 
         # Make sure all rows have the same length
         assert (
@@ -156,7 +157,7 @@ class Board(gym.Env):
 
         # moves the mouse in a random allowed direction. If none are allowed, the mouse doesn't move
         possible_directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
-        self.rng.shuffle(possible_directions)
+        self.np_random.shuffle(possible_directions)
 
         for target_direction in possible_directions:
             if self._move(np.array(target_direction), move_target=True):
@@ -241,8 +242,13 @@ class Board(gym.Env):
         options: Optional[dict[str, Any]] = None,
     ) -> tuple[ObsType, dict[str, Any]]:
 
-        if seed:
-            self.rng = np.random.default_rng(seed)
+        super().reset(seed=seed)
+
+        # Remove cat and mouse from board
+        if self._cat_position is not None:
+            self[self._cat_position].holds_agent = False
+        if self._target_position is not None:
+            self[self._target_position].holds_target = False
 
         position_reset = False
         # Position is given
@@ -273,16 +279,16 @@ class Board(gym.Env):
             # Initialise cat position
             self._cat_position: Annotated[np.typing.NDArray[np.int_], (2,)] = np.array(
                 [
-                    self.rng.integers(0, self._board_size[0]),
-                    self.rng.integers(0, self._board_size[1]),
+                    self.np_random.integers(0, self._board_size[0]),
+                    self.np_random.integers(0, self._board_size[1]),
                 ]
             )
             # Initialise target position
             self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
                 np.array(
                     [
-                        self.rng.integers(0, self._board_size[0]),
-                        self.rng.integers(0, self._board_size[1]),
+                        self.np_random.integers(0, self._board_size[0]),
+                        self.np_random.integers(0, self._board_size[1]),
                     ]
                 )
             )
@@ -455,12 +461,13 @@ class Board(gym.Env):
 
 class ConfiguredBoard(Board):
 
-    def __init__(self):
+    def __init__(self, render_mode: str = "human"):
         # An empty board of the board_size
         example_board = [
             [Cell(position=(j, i)) for i in range(board_size[1])]
             for j in range(board_size[0])
         ]
+
         # Define the locations of the trees
         example_board[0][1].cell_type = 1
         example_board[0][3].cell_type = 1
@@ -481,4 +488,4 @@ class ConfiguredBoard(Board):
         example_board[3][2].walls = np.array([0, 1])
         example_board[3][3].walls = np.array([-1, -1])
 
-        super().__init__(example_board)
+        super().__init__(example_board, render_mode)
