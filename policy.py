@@ -90,6 +90,52 @@ class Policy:
             all_v = new_all_v
         return all_v
 
+    def __value_iteration(self, discount = 0.1, stopping_criterion = 0.001):
+
+        # Describes the dynamics of the environment. Watch Board.P
+        P = self.environment.env.env.P
+        # Described the reward space of hte environment. Watch Board.R
+        R = self.environment.env.env.R
+
+        # create the policy if it's not created yet
+        policy = self._policy if self._policy else self.__initialise_randomly()
+
+        # create a dictionary where the keys are all possible states of the environment
+        all_v = {key: 0 for key in policy.keys()}
+
+        # relates to the accuracy of our V. Is compared to stopping_criterion
+        delta = np.inf
+
+        while delta >= stopping_criterion:
+            delta = 0
+
+            new_all_v = {}
+
+            for state in all_v.keys():
+
+                best_val = float('-inf')
+
+                for action in policy.values():
+
+                    if not P[(state, action)]:
+                        continue
+
+                    v = all_v[state]
+                    state_chance = 1 / len(P[state, action])
+
+                    new_v = sum(
+                        tuple(
+                            state_chance * (R[new_state] + discount * all_v[new_state])
+                            for new_state in P[(state, action)]
+                        )
+                    )
+
+                    best_val = max(best_val, state_chance)
+
+                    delta = max(delta, abs(new_v - v))
+                    new_all_v[state] = best_val
+
+
     def __initialise_randomly(self) -> dict[tuple, ActType]:
         """
         Initialises a random policy.
