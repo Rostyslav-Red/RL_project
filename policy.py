@@ -102,7 +102,7 @@ class Policy:
 
         return all_v
 
-    def __value_iteration(self, discount = 0.1, stopping_criterion = 0.001):
+    def value_iteration(self, discount = 0.1, stopping_criterion = 0.001):
 
         # Describes the dynamics of the environment. Watch Board.P
         P = self.environment.env.env.P
@@ -113,7 +113,7 @@ class Policy:
         policy = self._policy if self._policy else self.__initialise_randomly()
 
         # create a dictionary where the keys are all possible states of the environment
-        all_v = {key: 0 for key in policy.keys()}
+        all_v = {key: 0 for key in self.get_keys(self._obs_space)}
 
         # relates to the accuracy of our V. Is compared to stopping_criterion
         delta = np.inf
