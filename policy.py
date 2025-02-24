@@ -37,6 +37,7 @@ class Policy:
         self._all_actions = range(self._act_space.n)
 
         self._transition_function = self.environment.env.env.P
+        self._reward_function = self.environment.env.env.R
 
         if seed:
             self._act_space.seed(seed)
@@ -49,16 +50,10 @@ class Policy:
     ) -> Dict[Tuple[int, int, int, int], float]:
         """
         Uses an iterative algorithm to evaluate the value (v) of each state
-        :param discount: Determines how much the agent values future rewards over the immediate rewards
-        :param stopping_criterion: the threshold that determines when the algorithm stops
-        :return: a dictionary mapping each observation in the environment to an associated value
+        @param discount: Determines how much the agent values future rewards over the immediate rewards
+        @param stopping_criterion: the threshold that determines when the algorithm stops
+        @return: a dictionary mapping each observation in the environment to an associated value
         """
-
-        # Describes the dynamics of the environment. Watch Board.P
-        P = self.environment.env.env.P
-        # Described the reward space of hte environment. Watch Board.R
-        R = self.environment.env.env.R
-
         # create the policy if it's not created yet
         policy = self._policy if self._policy else self.__initialise_randomly()
 
@@ -77,17 +72,17 @@ class Policy:
 
             for state, action in policy.items():
                 # if we are in a terminal state, it's value is always 0
-                if not P[(state, action)]:
+                if not self._transition_function[state, action]:
                     new_all_v[state] = 0
                     continue
 
                 v = all_v[state]
-                state_chance = 1 / len(P[state, action])
+                state_chance = 1 / len(self._transition_function[state, action])
 
                 new_v = sum(
                     tuple(
-                        state_chance * (R[new_state] + discount * all_v[new_state])
-                        for new_state in P[(state, action)]
+                        state_chance * (self._reward_function[new_state] + discount * all_v[new_state])
+                        for new_state in self._transition_function[state, action]
                     )
                 )
 
@@ -95,20 +90,9 @@ class Policy:
                 new_all_v[state] = new_v
             all_v = new_all_v
 
-        # Set terminal states to correct reward
-        for state, action in policy.items():
-            if not P[(state, action)]:
-                all_v[state] = R[state]
-
         return all_v
 
     def value_iteration(self, discount = 0.1, stopping_criterion = 0.001):
-
-        # Describes the dynamics of the environment. Watch Board.P
-        P = self.environment.env.env.P
-        # Described the reward space of hte environment. Watch Board.R
-        R = self.environment.env.env.R
-
         # create the policy if it's not created yet
         policy = self._policy if self._policy else self.__initialise_randomly()
 
@@ -129,16 +113,16 @@ class Policy:
 
                 for action in policy.values():
 
-                    if not P[(state, action)]:
+                    if not self._transition_function[state, action]:
                         continue
 
                     v = all_v[state]
-                    state_chance = 1 / len(P[state, action])
+                    state_chance = 1 / len(self._transition_function[state, action])
 
                     new_v = sum(
                         tuple(
-                            state_chance * (R[new_state] + discount * all_v[new_state])
-                            for new_state in P[(state, action)]
+                            state_chance * (self._reward_function[new_state] + discount * all_v[new_state])
+                            for new_state in self._transition_function[state, action]
                         )
                     )
 
@@ -170,24 +154,23 @@ class Policy:
             for action in self._all_actions:
                 action_value = sum(
                     map(
-                        lambda new_state: value_dict[new_state],  # Get value for each successor
+                        lambda new_state: self._reward_function[new_state] + value_dict[new_state] * discount,  # Get value for each successor
                         transition_function[(state, action)]  # Get all possible successors for action
                     )
-                )  / len(transition_function[state, action])  # Compute average value for action
+                )  / len(transition_function[(state, action)])  # Compute average value for action
 
                 values[action] = action_value
 
             # Argmax
-            new_action = reduce(lambda act1, act2: act1 if act1[1] >= act2[1] else act2, values.items())[0]
+            new_action = max(values.items(), key=lambda kv: kv[1])[0]
 
             # Check if changes were made and change policy
-            made_changes = not (new_action == self[state]) or made_changes
+            made_changes = new_action != self[state] or made_changes
             policy[state] = new_action
 
         return policy, made_changes
 
-    def policy_iterate(self, discount: float = 0.1, evaluation_stopping_criterion: float = 0.001,
-                       max_iter: int = -1) -> 'Policy':
+    def policy_iterate(self, discount: float = 0.1, evaluation_stopping_criterion: float = 0.001) -> 'Policy':
         """
         Performs policy iteration.
 
@@ -196,14 +179,11 @@ class Policy:
         @param max_iter: The maximum number of iterations before it stops. -1 means go until policy converges.
         @return: The optimised policy.
         """
+        made_changes, policy = True, self
 
-        made_changes, policy, i = True, None, 0
-
-        # Loop while policy has not converged or until a maximum number of iterations has occurred.
-        while made_changes and (i < max_iter or max_iter == -1 and not (i < max_iter == -1)):
-            policy, made_changes = self.__improve(discount=discount, stopping_criterion=evaluation_stopping_criterion)
-            i += 1
-            print(i)
+        # Loop while policy has not converged
+        while made_changes:
+            policy, made_changes = policy.__improve(discount=discount, stopping_criterion=evaluation_stopping_criterion)
         return policy
 
     def __initialise_randomly(self) -> dict[tuple, ActType]:
@@ -213,7 +193,7 @@ class Policy:
         @return: A random policy dictionary
         """
         # Assign a random action from the action space to each key, as long as the key does not belong to a terminal state.
-        return {key: self._act_space.sample() for key in self.get_keys(self._obs_space) if len(self._transition_function[(key, 0)]) > 0}
+        return {key: self._act_space.sample() for key in self.get_keys(self._obs_space) if len(self._transition_function[key, 0]) > 0}
 
     def __getitem__(self, observation: ObsType | Tuple[int, ...]) -> ActType:
         """
