@@ -7,6 +7,7 @@ from gymnasium.core import ObsType, ActType
 from board import Board
 from constants import *
 from functools import reduce
+import json
 
 
 class Policy:
@@ -77,7 +78,7 @@ class Policy:
             for state, action in policy.items():
                 # if we are in a terminal state, it's value is always 0
                 if not P[(state, action)]:
-                    new_all_v[state] = R[state]
+                    new_all_v[state] = 0
                     continue
 
                 v = all_v[state]
@@ -93,6 +94,12 @@ class Policy:
                 delta = max(delta, abs(new_v - v))
                 new_all_v[state] = new_v
             all_v = new_all_v
+
+        # Set terminal states to correct reward
+        for state, action in policy.items():
+            if not P[(state, action)]:
+                all_v[state] = R[state]
+
         return all_v
 
     def __value_iteration(self, discount = 0.1, stopping_criterion = 0.001):
@@ -193,7 +200,7 @@ class Policy:
         made_changes, policy, i = True, None, 0
 
         # Loop while policy has not converged or until a maximum number of iterations has occurred.
-        while made_changes and not (max_iter > 0 and i < max_iter):
+        while made_changes and (i < max_iter or max_iter == -1 and not (i < max_iter == -1)):
             policy, made_changes = self.__improve(discount=discount, stopping_criterion=evaluation_stopping_criterion)
             i += 1
             print(i)
@@ -289,3 +296,28 @@ class Policy:
             map(tuple, np.stack((flat_obs_space.low, flat_obs_space.high)).T)
         )
         return Policy.__get_keys(bounds)
+
+    def save(self, file_name: str) -> None:
+        """
+        Saves a policy under a certain name.
+
+        @param file_name: The file name under which the policy is saved.
+        """
+        with open(file_name, "w") as f:
+            json_dict = {str(key): value for key, value in self.items()}
+            f.write(json.dumps(json_dict))
+
+    @staticmethod
+    def load(environment: gym.Env, file_name: str) -> 'Policy':
+        """
+        Tries to load a policy from a json file.
+
+        @param environment: The environment the policy describes.
+        @param file_name: The file where the policy can be found.
+
+        @return: The constructed policy
+        """
+        with open(file_name, "r") as f:
+            txt = json.loads(f.read())
+        policy_dict = {tuple(map(int, filter(lambda x: x.isnumeric(), tuple(key)))): value for key, value in txt.items()}
+        return Policy(environment, policy=policy_dict)

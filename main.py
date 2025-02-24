@@ -11,23 +11,18 @@ if __name__ == "__main__":
 
     board = gym.make("Board-v0")
 
+    # Checks if board is a valid environment
     # print(check_env(board.unwrapped))
 
-    # !!! the following block of code is only for demonstrating __policy_evaluation(). Remove after viewing
-    board.reset(
-        options={"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
-    )
+    ### Block for computing policy, only run when computing a new policy
+    # p = Policy(board).policy_iterate(max_iter=10000)
+    # p.save("improved_policy.json")
+    ###
 
-    p = Policy(board, seed=0)
-    print(p.items())
-    # print(p._Policy__policy_evaluation())
-    improved_policy = p.policy_iterate(max_iter=1000)
-    # !!! the of the block
+    obs, _ = board.reset()
 
-    obs, _ = board.reset(seed=1)
-
+    p = Policy.load(board, "improved_policy.json")
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
     agent = PolicyAgent(board, p)
-    # agent = HumanAgent(board)
 
     print(f"Obtained reward: {agent.run_agent(obs)}")
