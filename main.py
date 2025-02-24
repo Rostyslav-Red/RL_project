@@ -20,13 +20,14 @@ if __name__ == "__main__":
 
     p = Policy(board, seed=0)
     print(p.items())
-    print(p._Policy__policy_evaluation())
+    # print(p._Policy__policy_evaluation())
+    improved_policy = p.policy_iterate(max_iter=1000)
     # !!! the of the block
 
     obs, _ = board.reset(seed=1)
 
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
-    agent = PolicyAgent(board, Policy(board, seed=1))
+    agent = PolicyAgent(board, p)
     # agent = HumanAgent(board)
 
     print(f"Obtained reward: {agent.run_agent(obs)}")

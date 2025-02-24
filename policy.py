@@ -6,6 +6,7 @@ from gymnasium.spaces import flatten_space, flatten
 from gymnasium.core import ObsType, ActType
 from board import Board
 from constants import *
+from functools import reduce
 
 
 class Policy:
@@ -30,7 +31,11 @@ class Policy:
 
         self._obs_space = environment.observation_space
 
-        self._act_space = environment.action_space
+        self._act_space: gym.spaces.Discrete = environment.action_space
+
+        self._all_actions = range(self._act_space.n)
+
+        self._transition_function = self.environment.env.env.P
 
         if seed:
             self._act_space.seed(seed)
@@ -57,7 +62,7 @@ class Policy:
         policy = self._policy if self._policy else self.__initialise_randomly()
 
         # create a dictionary where the keys are all possible states of the environment
-        all_v = {key: 0 for key in policy.keys()}
+        all_v = {key: 0 for key in self.get_keys(self._obs_space)}
 
         # relates to the accuracy of our V. Is compared to stopping_criterion
         delta = np.inf
@@ -67,12 +72,12 @@ class Policy:
         while delta >= stopping_criterion:
             delta = 0
             # the dictionary for the updated prediction for all state values
-            new_all_v = {}
+            new_all_v = all_v.copy()
 
             for state, action in policy.items():
                 # if we are in a terminal state, it's value is always 0
                 if not P[(state, action)]:
-                    new_all_v[state] = 0
+                    new_all_v[state] = R[state]
                     continue
 
                 v = all_v[state]
@@ -135,6 +140,64 @@ class Policy:
                     delta = max(delta, abs(new_v - v))
                     new_all_v[state] = best_val
 
+    def __improve(self, discount: float, stopping_criterion: float) -> tuple['Policy', bool]:
+        """
+        Performs one step of policy improvement.
+
+        @param discount: The discount used when solving the Bellman equations.
+        @param stopping_criterion: Stopping criterion used for stopping when evaluating policy.
+        @return: A tuple of the new policy, and if it changed with regard to the current policy.
+        """
+        # Initialise new policy, so old policy is not modified. Nice to keep current policy immutable.
+        policy = Policy(self.environment)
+        made_changes = False
+        transition_function = self.environment.env.env.P
+
+        value_dict = self.__policy_evaluation(discount=discount, stopping_criterion=stopping_criterion)
+
+        # Try to improve all states
+        for state in self:
+            values = {}
+
+            # Compute the expected value for all actions
+            for action in self._all_actions:
+                action_value = sum(
+                    map(
+                        lambda new_state: value_dict[new_state],  # Get value for each successor
+                        transition_function[(state, action)]  # Get all possible successors for action
+                    )
+                )  / len(transition_function[state, action])  # Compute average value for action
+
+                values[action] = action_value
+
+            # Argmax
+            new_action = reduce(lambda act1, act2: act1 if act1[1] >= act2[1] else act2, values.items())[0]
+
+            # Check if changes were made and change policy
+            made_changes = not (new_action == self[state]) or made_changes
+            policy[state] = new_action
+
+        return policy, made_changes
+
+    def policy_iterate(self, discount: float = 0.1, evaluation_stopping_criterion: float = 0.001,
+                       max_iter: int = -1) -> 'Policy':
+        """
+        Performs policy iteration.
+
+        @param discount: The discount used when solving the Bellman equations.
+        @param evaluation_stopping_criterion: The stopping criterion used when evaluating the policy.
+        @param max_iter: The maximum number of iterations before it stops. -1 means go until policy converges.
+        @return: The optimised policy.
+        """
+
+        made_changes, policy, i = True, None, 0
+
+        # Loop while policy has not converged or until a maximum number of iterations has occurred.
+        while made_changes and not (max_iter > 0 and i < max_iter):
+            policy, made_changes = self.__improve(discount=discount, stopping_criterion=evaluation_stopping_criterion)
+            i += 1
+            print(i)
+        return policy
 
     def __initialise_randomly(self) -> dict[tuple, ActType]:
         """
@@ -142,19 +205,17 @@ class Policy:
 
         @return: A random policy dictionary
         """
-        policy = {}
-        for key in self.get_keys(self._obs_space):
-            policy[key] = self._act_space.sample()
-        return policy
+        # Assign a random action from the action space to each key, as long as the key does not belong to a terminal state.
+        return {key: self._act_space.sample() for key in self.get_keys(self._obs_space) if len(self._transition_function[(key, 0)]) > 0}
 
-    def __getitem__(self, observation: ObsType) -> ActType:
+    def __getitem__(self, observation: ObsType | Tuple[int, ...]) -> ActType:
         """
         Takes an observation and maps it to the corresponding action.
 
         @param observation: Observation of the environment.
         @return: Action to take under this policy.
         """
-        key = tuple(flatten(self._obs_space, observation))
+        key = tuple(flatten(self._obs_space, observation)) if not isinstance(observation, tuple) else observation
         return self._policy[key]
 
     def __setitem__(self, key: ObsType, value: ActType) -> None:
