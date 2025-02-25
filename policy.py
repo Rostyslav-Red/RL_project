@@ -95,7 +95,6 @@ class Policy:
     def value_iteration(self, discount = 0.1, stopping_criterion = 0.001):
         # create the policy if it's not created yet
         policy = self._policy if self._policy else self.__initialise_randomly()
-
         # create a dictionary where the keys are all possible states of the environment
         all_v = {key: 0 for key in self.get_keys(self._obs_space)}
 
@@ -287,7 +286,7 @@ class Policy:
         @param file_name: The file name under which the policy is saved.
         """
         with open(file_name, "w") as f:
-            json_dict = {str(key): value for key, value in self.items()}
+            json_dict = {str(key): int(value) for key, value in self.items()}
             f.write(json.dumps(json_dict))
 
     @staticmethod
