@@ -15,8 +15,8 @@ if __name__ == "__main__":
     # print(check_env(board.unwrapped))
 
     ### Block for computing policy, only run when computing a new policy
-    # p = Policy(board).policy_iterate()
-    # p.save("improved_policy.json")
+    p = Policy(board).value_iteration()
+    p.save("improved_policy.json")
     ###
 
     obs, _ = board.reset()

@@ -105,31 +105,34 @@ class Policy:
         while delta >= stopping_criterion:
             delta = 0
 
-            new_all_v = {}
+            new_all_v = all_v.copy()
 
-            for state in all_v.keys():
+            for state, action in policy.items():
 
                 best_val = float('-inf')
 
-                for action in policy.values():
+                if not self._transition_function.get((state, action)):
+                    new_all_v[state] = 0
+                    continue
 
-                    if not self._transition_function[state, action]:
-                        continue
+                v = all_v[state]
+                state_chance = 1 / len(self._transition_function[state, action])
 
-                    v = all_v[state]
-                    state_chance = 1 / len(self._transition_function[state, action])
-
-                    new_v = sum(
-                        tuple(
-                            state_chance * (self._reward_function[new_state] + discount * all_v[new_state])
-                            for new_state in self._transition_function[state, action]
-                        )
+                new_v = sum(
+                    tuple(
+                        state_chance * (self._reward_function[new_state] + discount * all_v[new_state])
+                        for new_state in self._transition_function[state, action]
                     )
+                )
 
-                    best_val = max(best_val, state_chance)
+                best_val = max(best_val, new_v)
 
-                    delta = max(delta, abs(new_v - v))
-                    new_all_v[state] = best_val
+                delta = max(delta, abs(new_v - v))
+                new_all_v[state] = best_val
+
+            all_v = new_all_v
+
+        return Policy(self.environment, policy = policy)
 
     def __improve(self, discount: float, stopping_criterion: float) -> tuple['Policy', bool]:
         """
