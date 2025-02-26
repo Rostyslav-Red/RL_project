@@ -130,6 +130,12 @@ class Policy:
                         best_val = new_v
                         best_action = action
 
+                    # delta = max(delta, abs(best_val - all_v[state]))
+                    # new_all_v[state] = best_val
+                    #
+                    # if best_action is not None:
+                    #     policy[state] = best_action
+
                     if best_action is not None:
                         new_all_v[state] = best_val
                         policy[state] = best_action
