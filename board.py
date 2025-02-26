@@ -267,7 +267,11 @@ class Board(gym.Env):
                 self._target_position: Annotated[np.typing.NDArray[np.int_], (2,)] = (
                     options["target_position"]
                 )
-                position_reset = True
+
+                if (self._target_position == self._cat_position).all():
+                    warnings.warn("Cat and mouse position initialised to same position, randomising instead.")
+                else:
+                    position_reset = True
             # Position is given but invalid, randomise instead.
             else:
                 warnings.warn(
@@ -292,6 +296,10 @@ class Board(gym.Env):
                     ]
                 )
             )
+
+            # Make sure board doesn't randomise to a terminal state.
+            if (self._target_position == self._cat_position).all():
+                return self.reset(seed=seed, options=options)
 
         self[self._cat_position].holds_agent = True
         self[self._target_position].holds_target = True
