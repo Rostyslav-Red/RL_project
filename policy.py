@@ -1,12 +1,10 @@
+import warnings
 from functools import cache
 from typing import Optional, Dict, Tuple
 import gymnasium as gym
-import numpy as np
 from gymnasium.spaces import flatten_space, flatten
 from gymnasium.core import ObsType, ActType
-from board import Board
 from constants import *
-from functools import reduce
 import json
 
 
@@ -43,16 +41,22 @@ class Policy:
             self._act_space.seed(seed)
             self._obs_space.seed(seed)
 
-        self._policy = policy if policy else self.__initialise_randomly()
+        # Check policy validity
+        policy_valid = self.is_valid(policy, self._obs_space, self._act_space)
+        if policy and not policy_valid:
+            warnings.warn("Invalid policy passed, randomising policy instead.")
+
+        self._policy = policy if policy_valid else self.__initialise_randomly()
 
     def __policy_evaluation(
         self, discount=0.1, stopping_criterion: float = 0.001
     ) -> Dict[Tuple[int, int, int, int], float]:
         """
         Uses an iterative algorithm to evaluate the value (v) of each state
+
         @param discount: Determines how much the agent values future rewards over the immediate rewards
-        @param stopping_criterion: the threshold that determines when the algorithm stops
-        @return: a dictionary mapping each observation in the environment to an associated value
+        @param stopping_criterion: The threshold that determines when the algorithm stops
+        @return: A dictionary mapping each observation in the environment to an associated value
         """
         # create the policy if it's not created yet
         policy = self._policy if self._policy else self.__initialise_randomly()
@@ -92,9 +96,18 @@ class Policy:
 
         return all_v
 
-    def value_iteration(self, discount=0.1, stopping_criterion=0.001):
+    def value_iteration(self, discount=0.1, stopping_criterion=0.001) -> 'Policy':
+        """
+        Performs value iteration, computing an approximation of the optimal policy.
+
+        @param discount: The discount factor used when solving the Bellman equations.
+        @param stopping_criterion: The stopping criterion used, if the difference is lower than this value, value
+                                   iteration is said to have found the optimal value function.
+        @return: A new policy that is an approximation of the optimal policy.
+        """
+
         # create the policy if it's not created yet
-        policy = self._policy if self._policy else self.__initialise_randomly()
+        policy = Policy(self.environment)
         # create a dictionary where the keys are all possible states of the environment
         all_v = {key: 0 for key in self.get_keys(self._obs_space)}
 
@@ -143,7 +156,7 @@ class Policy:
 
                 all_v = new_all_v
 
-        return Policy(self.environment, policy=policy)
+        return policy
 
     def __improve(self, discount: float, stopping_criterion: float) -> tuple['Policy', bool]:
         """
@@ -251,6 +264,24 @@ class Policy:
         @return: All key value pairs.
         """
         return self._policy.items()
+
+    @staticmethod
+    def is_valid(policy_dict: dict, obs_space: gym.Space, act_space: gym.Space) -> bool:
+        """
+        Checks if the policy dictionary is a valid policy (all possible observations are in dict keys and all values
+        are in the action space.
+
+        @param policy_dict:
+        @param obs_space:
+        @return:
+        """
+        policy_valid = False
+        if policy_dict:
+            keys = set(Policy.get_keys(obs_space))
+            keys_valid = len(keys.union(policy_dict.keys())) == len(keys)
+            vals_valid = len(tuple(filter(lambda val: not act_space.contains(val), policy_dict.values()))) == 0
+            policy_valid = keys_valid and vals_valid
+        return policy_valid
 
     @staticmethod
     @cache

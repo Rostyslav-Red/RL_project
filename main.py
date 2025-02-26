@@ -15,13 +15,13 @@ if __name__ == "__main__":
     # print(check_env(board.unwrapped))
 
     ### Block for computing policy, only run when computing a new policy
-    p = Policy(board).value_iteration()
-    p.save("improved_policy.json")
+    # p = Policy(board).value_iteration()
+    # p.save("policies/value_iteration_policy.json")
     ###
 
     obs, _ = board.reset()
 
-    p = Policy.load(board, "improved_policy.json")
+    p = Policy.load(board, "policies/value_iteration_policy.json")
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
     agent = PolicyAgent(board, p)
 
