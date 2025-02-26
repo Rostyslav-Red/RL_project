@@ -92,7 +92,7 @@ class Policy:
 
         return all_v
 
-    def value_iteration(self, discount = 0.1, stopping_criterion = 0.001):
+    def value_iteration(self, discount=0.1, stopping_criterion=0.001):
         # create the policy if it's not created yet
         policy = self._policy if self._policy else self.__initialise_randomly()
         # create a dictionary where the keys are all possible states of the environment
@@ -106,32 +106,38 @@ class Policy:
 
             new_all_v = all_v.copy()
 
-            for state, action in policy.items():
+            for state in policy.keys():
 
+                best_action = None
                 best_val = float('-inf')
 
-                if not self._transition_function.get((state, action)):
-                    new_all_v[state] = 0
-                    continue
+                for action in self._all_actions:
 
-                v = all_v[state]
-                state_chance = 1 / len(self._transition_function[state, action])
+                    if not self._transition_function.get((state, action)):
+                        new_all_v[state] = 0
+                        continue
 
-                new_v = sum(
-                    tuple(
-                        state_chance * (self._reward_function[new_state] + discount * all_v[new_state])
-                        for new_state in self._transition_function[state, action]
+                    state_chance = 1 / len(self._transition_function[state, action])
+
+                    new_v = sum(
+                        tuple(
+                            state_chance * (self._reward_function[new_state] + discount * all_v[new_state])
+                            for new_state in self._transition_function[state, action]
+                        )
                     )
-                )
 
-                best_val = max(best_val, new_v)
+                    if new_v > best_val:
+                        best_val = new_v
+                        best_action = action
 
-                delta = max(delta, abs(new_v - v))
-                new_all_v[state] = best_val
+                    if best_action is not None:
+                        new_all_v[state] = best_val
+                        policy[state] = best_action
+                        delta = max(delta, abs(best_val - all_v[state]))
 
-            all_v = new_all_v
+                all_v = new_all_v
 
-        return Policy(self.environment, policy = policy)
+        return Policy(self.environment, policy=policy)
 
     def __improve(self, discount: float, stopping_criterion: float) -> tuple['Policy', bool]:
         """
