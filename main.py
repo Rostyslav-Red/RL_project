@@ -2,6 +2,7 @@ from agent import RandomAgent, HumanAgent, PolicyAgent
 import numpy as np
 import gymnasium as gym
 from gymnasium.utils.env_checker import check_env
+from dynamic_programming_policy import DynamicProgrammingPolicy
 from policy import Policy
 
 if __name__ == "__main__":
@@ -15,7 +16,7 @@ if __name__ == "__main__":
     # print(check_env(board.unwrapped))
 
     ### Block for computing policy, only run when computing a new policy
-    # p = Policy(board).value_iteration()
+    # p = DynamicProgrammingPolicy(board).value_iteration()
     # p.save("policies/value_iteration_policy.json")
     ###
 
