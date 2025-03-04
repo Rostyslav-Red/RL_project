@@ -1,11 +1,11 @@
+import warnings
 from functools import cache
 from typing import Optional, Dict, Tuple
 import gymnasium as gym
-import numpy as np
 from gymnasium.spaces import flatten_space, flatten
 from gymnasium.core import ObsType, ActType
-from board import Board
 from constants import *
+import json
 
 
 class Policy:
@@ -15,7 +15,8 @@ class Policy:
 
     def __init__(
         self,
-        environment: gym.Env,
+        obs_space: gym.Space,
+        act_space: gym.Space,
         policy: Optional[dict] = None,
         seed: Optional[int | None] = None,
     ):
@@ -26,115 +27,22 @@ class Policy:
         @param policy: Optional, a dictionary mapping each observation in the environment to an action in the action_space
                        If not present, creates a random policy.
         """
-        self.environment = environment
+        self._obs_space = obs_space
 
-        self._obs_space = environment.observation_space
+        self._act_space: gym.spaces.Discrete = act_space
 
-        self._act_space = environment.action_space
+        self._all_actions = range(self._act_space.n)
 
         if seed:
             self._act_space.seed(seed)
             self._obs_space.seed(seed)
 
-        self._policy = policy if policy else self.__initialise_randomly()
+        # Check policy validity
+        policy_valid = self.is_valid(policy, self._obs_space, self._act_space)
+        if policy and not policy_valid:
+            warnings.warn("Invalid policy passed, randomising policy instead.")
 
-    def __policy_evaluation(
-        self, discount=0.1, stopping_criterion: float = 0.001
-    ) -> Dict[Tuple[int, int, int, int], float]:
-        """
-        Uses an iterative algorithm to evaluate the value (v) of each state
-        :param discount: Determines how much the agent values future rewards over the immediate rewards
-        :param stopping_criterion: the threshold that determines when the algorithm stops
-        :return: a dictionary mapping each observation in the environment to an associated value
-        """
-
-        # Describes the dynamics of the environment. Watch Board.P
-        P = self.environment.env.env.P
-        # Described the reward space of hte environment. Watch Board.R
-        R = self.environment.env.env.R
-
-        # create the policy if it's not created yet
-        policy = self._policy if self._policy else self.__initialise_randomly()
-
-        # create a dictionary where the keys are all possible states of the environment
-        all_v = {key: 0 for key in policy.keys()}
-
-        # relates to the accuracy of our V. Is compared to stopping_criterion
-        delta = np.inf
-
-        # refrain all the values in the dictionary, until the difference between iterations is larger
-        # than the threshold for the accuracy
-        while delta >= stopping_criterion:
-            delta = 0
-            # the dictionary for the updated prediction for all state values
-            new_all_v = {}
-
-            for state, action in policy.items():
-                # if we are in a terminal state, it's value is always 0
-                if not P[(state, action)]:
-                    new_all_v[state] = 0
-                    continue
-
-                v = all_v[state]
-                state_chance = 1 / len(P[state, action])
-
-                new_v = sum(
-                    tuple(
-                        state_chance * (R[new_state] + discount * all_v[new_state])
-                        for new_state in P[(state, action)]
-                    )
-                )
-
-                delta = max(delta, abs(new_v - v))
-                new_all_v[state] = new_v
-            all_v = new_all_v
-        return all_v
-
-    def __value_iteration(self, discount = 0.1, stopping_criterion = 0.001):
-
-        # Describes the dynamics of the environment. Watch Board.P
-        P = self.environment.env.env.P
-        # Described the reward space of hte environment. Watch Board.R
-        R = self.environment.env.env.R
-
-        # create the policy if it's not created yet
-        policy = self._policy if self._policy else self.__initialise_randomly()
-
-        # create a dictionary where the keys are all possible states of the environment
-        all_v = {key: 0 for key in policy.keys()}
-
-        # relates to the accuracy of our V. Is compared to stopping_criterion
-        delta = np.inf
-
-        while delta >= stopping_criterion:
-            delta = 0
-
-            new_all_v = {}
-
-            for state in all_v.keys():
-
-                best_val = float('-inf')
-
-                for action in policy.values():
-
-                    if not P[(state, action)]:
-                        continue
-
-                    v = all_v[state]
-                    state_chance = 1 / len(P[state, action])
-
-                    new_v = sum(
-                        tuple(
-                            state_chance * (R[new_state] + discount * all_v[new_state])
-                            for new_state in P[(state, action)]
-                        )
-                    )
-
-                    best_val = max(best_val, state_chance)
-
-                    delta = max(delta, abs(new_v - v))
-                    new_all_v[state] = best_val
-
+        self._policy = policy if policy_valid else self.__initialise_randomly()
 
     def __initialise_randomly(self) -> dict[tuple, ActType]:
         """
@@ -142,19 +50,17 @@ class Policy:
 
         @return: A random policy dictionary
         """
-        policy = {}
-        for key in self.get_keys(self._obs_space):
-            policy[key] = self._act_space.sample()
-        return policy
+        # Assign a random action from the action space to each key, as long as the key does not belong to a terminal state.
+        return {key: self._act_space.sample() for key in self.get_keys(self._obs_space)}
 
-    def __getitem__(self, observation: ObsType) -> ActType:
+    def __getitem__(self, observation: ObsType | Tuple[int, ...]) -> ActType:
         """
         Takes an observation and maps it to the corresponding action.
 
         @param observation: Observation of the environment.
         @return: Action to take under this policy.
         """
-        key = tuple(flatten(self._obs_space, observation))
+        key = tuple(flatten(self._obs_space, observation)) if not isinstance(observation, tuple) else observation
         return self._policy[key]
 
     def __setitem__(self, key: ObsType, value: ActType) -> None:
@@ -189,6 +95,24 @@ class Policy:
         @return: All key value pairs.
         """
         return self._policy.items()
+
+    @staticmethod
+    def is_valid(policy_dict: dict, obs_space: gym.Space, act_space: gym.Space) -> bool:
+        """
+        Checks if the policy dictionary is a valid policy (all possible observations are in dict keys and all values
+        are in the action space.
+
+        @param policy_dict:
+        @param obs_space:
+        @return:
+        """
+        policy_valid = False
+        if policy_dict:
+            keys = set(Policy.get_keys(obs_space))
+            keys_valid = len(keys.union(policy_dict.keys())) == len(keys)
+            vals_valid = len(tuple(filter(lambda val: not act_space.contains(val), policy_dict.values()))) == 0
+            policy_valid = keys_valid and vals_valid
+        return policy_valid
 
     @staticmethod
     @cache
@@ -228,3 +152,28 @@ class Policy:
             map(tuple, np.stack((flat_obs_space.low, flat_obs_space.high)).T)
         )
         return Policy.__get_keys(bounds)
+
+    def save(self, file_name: str) -> None:
+        """
+        Saves a policy under a certain name.
+
+        @param file_name: The file name under which the policy is saved.
+        """
+        with open(file_name, "w") as f:
+            json_dict = {str(key): int(value) for key, value in self.items()}
+            f.write(json.dumps(json_dict))
+
+    @staticmethod
+    def load(environment: gym.Env, file_name: str) -> 'Policy':
+        """
+        Tries to load a policy from a json file.
+
+        @param environment: The environment the policy describes.
+        @param file_name: The file where the policy can be found.
+
+        @return: The constructed policy
+        """
+        with open(file_name, "r") as f:
+            txt = json.loads(f.read())
+        policy_dict = {tuple(map(int, filter(lambda x: x.isnumeric(), tuple(key)))): value for key, value in txt.items()}
+        return Policy(environment.observation_space, environment.action_space, policy=policy_dict)

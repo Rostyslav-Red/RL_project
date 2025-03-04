@@ -2,6 +2,7 @@ from agent import RandomAgent, HumanAgent, PolicyAgent
 import numpy as np
 import gymnasium as gym
 from gymnasium.utils.env_checker import check_env
+from dynamic_programming_policy import DynamicProgrammingPolicy
 from policy import Policy
 
 if __name__ == "__main__":
@@ -11,22 +12,18 @@ if __name__ == "__main__":
 
     board = gym.make("Board-v0")
 
+    # Checks if board is a valid environment
     # print(check_env(board.unwrapped))
 
-    # !!! the following block of code is only for demonstrating __policy_evaluation(). Remove after viewing
-    board.reset(
-        options={"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
-    )
+    ### Block for computing policy, only run when computing a new policy
+    # p = DynamicProgrammingPolicy(board).value_iteration()
+    # p.save("policies/value_iteration_policy.json")
+    ###
 
-    p = Policy(board, seed=0)
-    print(p.items())
-    print(p._Policy__policy_evaluation())
-    # !!! the of the block
+    obs, _ = board.reset()
 
-    obs, _ = board.reset(seed=1)
-
+    p = Policy.load(board, "policies/value_iteration_policy.json")
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
-    agent = PolicyAgent(board, Policy(board, seed=1))
-    # agent = HumanAgent(board)
+    agent = PolicyAgent(board, p)
 
     print(f"Obtained reward: {agent.run_agent(obs)}")
