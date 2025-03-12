@@ -18,7 +18,7 @@ class TemporalDifferencePolicy(Policy):
     def sarsa(self,
               env: gym.Env,
               n_episodes: int,
-              alpha: float = 1,
+              alpha: float = 0.1,
               gamma: float = 0.9,
               policy_func: Callable[[dict[int, float]], int] = epsilon_greedy
               ) -> Policy:

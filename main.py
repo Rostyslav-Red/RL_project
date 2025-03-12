@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # print(check_env(board.unwrapped))
 
     ### Block for computing policy, only run when computing a new policy
-    # p = TemporalDifferencePolicy(board.observation_space, board.action_space).sarsa(board, n_episodes=1000)
+    # p = TemporalDifferencePolicy(board.observation_space, board.action_space).sarsa(board, n_episodes=10000)
     # p.save("policies/td_sarsa.json")
     ###
 
