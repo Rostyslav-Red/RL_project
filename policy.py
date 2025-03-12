@@ -1,5 +1,6 @@
 import warnings
 from functools import cache
+from itertools import groupby
 from typing import Optional, Dict, Tuple
 import gymnasium as gym
 from gymnasium.spaces import flatten_space, flatten
@@ -44,15 +45,7 @@ class Policy:
 
         self._policy = policy if policy_valid else self.__initialise_randomly()
 
-    def __initialise_randomly(self) -> dict[tuple, ActType]:
-        """
-        Initialises a random policy.
-
-        @return: A random policy dictionary
-        """
-        # Assign a random action from the action space to each key, as long as the key does not belong to a terminal state.
-        return {key: self._act_space.sample() for key in self.get_keys(self._obs_space)}
-
+    # Dunder methods
     def __getitem__(self, observation: ObsType | Tuple[int, ...]) -> ActType:
         """
         Takes an observation and maps it to the corresponding action.
@@ -60,7 +53,7 @@ class Policy:
         @param observation: Observation of the environment.
         @return: Action to take under this policy.
         """
-        key = tuple(flatten(self._obs_space, observation)) if not isinstance(observation, tuple) else observation
+        key = self._obs_to_tuple(observation) if not isinstance(observation, tuple) else observation
         return self._policy[key]
 
     def __setitem__(self, key: ObsType, value: ActType) -> None:
@@ -78,6 +71,7 @@ class Policy:
         """
         return self._policy.__iter__()
 
+    # Dict methods
     def keys(self):
         """
         @return: All possible observations of the environment as flattened tuples.
@@ -96,6 +90,42 @@ class Policy:
         """
         return self._policy.items()
 
+    # Misc methods
+    def __initialise_randomly(self) -> dict[tuple, ActType]:
+        """
+        Initialises a random policy.
+
+        @return: A random policy dictionary
+        """
+        # Assign a random action from the action space to each key, as long as the key does not belong to a terminal state.
+        return {key: self._act_space.sample() for key in self.get_keys(self._obs_space)}
+
+    def _action_to_value(self, q: dict[tuple[tuple[int, ...], int], float], observation: tuple[int, ...]) -> dict[int, float]:
+        """
+        Given a dictionary mapping observation + action to a value, and an observation, gives back a dictionary of
+        action mapping to value.
+
+        @param q: Dictionary mapping observation + action to value.
+        @param observation: Observation for which the dict needs to be computed.
+        @return: A dictionary mapping all actions in the observation to a value.
+        """
+        return {key[1]: value for key, value in q.items() if observation == key[0]}
+
+    def _policy_from_q(self, q: dict[tuple[tuple[int, ...], int], float]) -> 'Policy':
+        # Create a tuple of the form (obs, (((obs, act), val), ...)), grouping same observations together
+        obs_to_obs_act_val = groupby(q.items(), lambda kkv: kkv[0][0])
+        policy = dict(
+            map(lambda x: (x[0],  # x[0] is the observation
+                           max(x[1],  # x[1] is the tuple of ((obs, act), val), ...), taking max over it gives tuple with highest val.
+                               key=lambda y: y[1])[0][1]  # y[1] is the value, [0][1] on max gives back the action
+                           ),
+                obs_to_obs_act_val))
+        return Policy(self._obs_space, self._act_space, policy=policy)
+
+    def _obs_to_tuple(self, observation: ObsType) -> tuple[int, ...]:
+        return tuple(map(int, flatten(self._obs_space, observation)))
+
+    # Static methods
     @staticmethod
     def is_valid(policy_dict: dict, obs_space: gym.Space, act_space: gym.Space) -> bool:
         """
@@ -153,6 +183,7 @@ class Policy:
         )
         return Policy.__get_keys(bounds)
 
+    # Policy loading and saving
     def save(self, file_name: str) -> None:
         """
         Saves a policy under a certain name.

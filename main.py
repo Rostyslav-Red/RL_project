@@ -4,6 +4,7 @@ import gymnasium as gym
 from gymnasium.utils.env_checker import check_env
 from dynamic_programming_policy import DynamicProgrammingPolicy
 from policy import Policy
+from temporal_difference_policy import TemporalDifferencePolicy
 
 if __name__ == "__main__":
     gym.register(id="Board-v0", entry_point="board:ConfiguredBoard")
@@ -16,13 +17,13 @@ if __name__ == "__main__":
     # print(check_env(board.unwrapped))
 
     ### Block for computing policy, only run when computing a new policy
-    # p = DynamicProgrammingPolicy(board).value_iteration()
-    # p.save("policies/value_iteration_policy.json")
+    # p = TemporalDifferencePolicy(board.observation_space, board.action_space).sarsa(board, n_episodes=1000)
+    # p.save("policies/td_sarsa.json")
     ###
 
     obs, _ = board.reset()
 
-    p = Policy.load(board, "policies/value_iteration_policy.json")
+    p = Policy.load(board, "policies/td_sarsa.json")
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
     agent = PolicyAgent(board, p)
 
