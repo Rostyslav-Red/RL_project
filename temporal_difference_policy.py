@@ -60,3 +60,39 @@ class TemporalDifferencePolicy(Policy):
                 action, obs = new_action, new_obs
         print(q)
         return self._policy_from_q(q)
+
+
+    def q_learning(self,
+              env: gym.Env,
+              n_episodes: int,
+              alpha: float = 0.5,
+              gamma: float = 0.1,
+              policy_func: Callable[[dict[int, float]], int] = epsilon_greedy
+              ) -> Policy:
+
+        assert env.action_space == self._act_space and env.observation_space == self._obs_space, \
+            "Environment does not match provided action or observation space."
+
+        q = {(key, action): 0.0 for key in self for action in self._all_actions }
+
+        for episode_n in range(n_episodes):
+            obs, _ = env.reset()
+            obs = self._obs_to_tuple(obs)
+
+            while True:
+
+                action = policy_func(self._action_to_value(q, obs))
+
+                new_obs, reward, terminal, truncated, _ = env.step(action)
+                new_obs = self._obs_to_tuple(new_obs)
+
+                max_q_value = max(self._action_to_value(q, new_obs).values())
+                q[obs, action] += alpha * (reward + gamma * max_q_value - q[obs, action])
+
+                obs = new_obs
+
+                if terminal or truncated:
+                    break
+
+        print(q)
+        return self._policy_from_q(q)
