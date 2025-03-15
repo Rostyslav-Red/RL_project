@@ -18,14 +18,18 @@ class Board(gym.Env):
     arguments. These children can then be registered.
     """
 
-    metadata = {"render_modes": ("human",)}
+    metadata = {"render_modes": ("human", "simple")}
 
     def __init__(self, board: List[List[Cell]], render_mode: str):
         super(Board, self).__init__()
 
+        # Ensures that the render mode is appropriate
+        assert (
+            render_mode in Board.metadata["render_modes"]
+        ), f"ValueError: {render_mode} is not a valid render_mode"
         self.render_mode = render_mode
 
-        # Make sure all rows have the same length
+        # Ensures all rows have the same length (it also ensures the same thing for the columns)
         assert (
             len(reduce(lambda x, y: x if len(x) == len(y) else [], board)) != 0
         ), "Rows don't have the same length."
@@ -45,10 +49,10 @@ class Board(gym.Env):
         self.observation_space = gym.spaces.Dict(
             {
                 "agent_pos": gym.spaces.Box(
-                    0, np.max(self._board_size) - 1, shape=(2,), dtype=int
+                    0, np.max(self._board_size) - 1, shape=(2,), dtype=np.int_
                 ),
                 "target_pos": gym.spaces.Box(
-                    0, np.max(self._board_size) - 1, shape=(2,), dtype=int
+                    0, np.max(self._board_size) - 1, shape=(2,), dtype=np.int_
                 ),
             }
         )
@@ -65,23 +69,7 @@ class Board(gym.Env):
 
     # dunder methods
     def __str__(self):
-        horizontal_line = " — " + "— — — " * board_size[1]
-        result = horizontal_line
-        for row in self._board:
-            char_line = "|  "
-            wall_line = "|  "
-            for cell in row:
-                char_line += str(cell) + ("  |  " if cell.walls[1] == 1 else "     ")
-                wall_line += "—     " if cell.walls[0] == 1 else "      "
-            char_line = char_line[:-4]
-            wall_line = wall_line[:-4]
-            char_line += "  |"
-            wall_line += "  |"
-            result += "\n" + char_line + "\n" + wall_line
-        result = result[: -(self._board_size[1] * 6 + 3)]
-        result += "\n" + horizontal_line
-
-        return "\n" + result
+        return self.render()
 
     def __getitem__(
         self, item: Union[Annotated[np.typing.NDArray[np.int_], (2,)], Tuple[int, int]]
@@ -269,7 +257,9 @@ class Board(gym.Env):
                 )
 
                 if (self._target_position == self._cat_position).all():
-                    warnings.warn("Cat and mouse position initialised to same position, randomising instead.")
+                    warnings.warn(
+                        "Cat and mouse position initialised to same position, randomising instead."
+                    )
                 else:
                     position_reset = True
             # Position is given but invalid, randomise instead.
@@ -323,13 +313,98 @@ class Board(gym.Env):
         info = self._get_info()
 
         # Print board if rendering is set to human.
-        if self.render_mode == "human":
-            print(self)
+        print(self.render())
 
         return observation, reward, terminated, truncated, info
 
+    # Rendering
+    def _human_render(self):
+        horizontal_line = " — " + "— — — " * board_size[1]
+        result = horizontal_line
+        for row in self._board:
+            char_line = "|  "
+            wall_line = "|  "
+            for cell in row:
+                char_line += str(cell) + ("  |  " if cell.walls[1] == 1 else "     ")
+                wall_line += "—     " if cell.walls[0] == 1 else "      "
+            char_line = char_line[:-4]
+            wall_line = wall_line[:-4]
+            char_line += "  |"
+            wall_line += "  |"
+            result += "\n" + char_line + "\n" + wall_line
+        result = result[: -(self._board_size[1] * 6 + 3)]
+        result += "\n" + horizontal_line
+
+        return "\n" + result
+
+    def _simple_render(self):
+        """
+        represents the board as a matrix of integers, where:
+            - 0 corresponds to an empty cell
+            - 1 corresponds to a tree
+            - 2 corresponds to an empty cell with an agent
+            - 3 corresponds to a tree with an agent
+            - 4 corresponds to an empty cell with a target
+            - 5 corresponds to a tree with a target
+            - 6 corresponds to an empty cell with both the agent and the target
+            - 7 corresponds to a tree with both the agent and the target
+            - 8 corresponds to an in-between space with a wall
+            - 9 corresponds to an in-between space without a wall
+        :return: a string representation of the board
+        """
+        result = ""
+        for row in self._board:
+            walls = "9"
+            if row[0].walls[1] == -1:
+                cells = "8"
+            else:
+                cells = "9"
+            for cell in row:
+                if cell.walls[0] == -1:
+                    walls += "89"
+                else:
+                    walls += "99"
+
+                match (cell.cell_type, cell.holds_agent, cell.holds_target):
+                    case (0, 0, 0):
+                        cells += "0"
+                    case (1, 0, 0):
+                        cells += "1"
+                    case (0, 1, 0):
+                        cells += "2"
+                    case (1, 1, 0):
+                        cells += "3"
+                    case (0, 0, 1):
+                        cells += "4"
+                    case (1, 0, 1):
+                        cells += "5"
+                    case (0, 1, 1):
+                        cells += "6"
+                    case (1, 1, 1):
+                        cells += "7"
+
+                if cell.walls[1] == 1:
+                    cells += "8"
+                else:
+                    cells += "9"
+            result += walls + "\n" + cells + "\n"
+
+        result += "9"
+        final_row = self._board[-1]
+        for cell in final_row:
+            if cell.walls[0] == 1:
+                result += "89"
+            else:
+                result += "99"
+        return result
+
     def render(self) -> RenderFrame | list[RenderFrame] | None:
-        return str(self)
+        if self.render_mode == "human":
+            return self._human_render()
+        elif self.render_mode == "simple":
+            return self._simple_render()
+        else:
+            raise Exception("Unknown render mode")
 
     # Other
     def find_dynamics(
@@ -468,6 +543,9 @@ class Board(gym.Env):
 
 
 class ConfiguredBoard(Board):
+    """
+    Defines a concrete board configuration that is used for testing throughout the project
+    """
 
     def __init__(self, render_mode: str = "human"):
         # An empty board of the board_size

@@ -21,6 +21,7 @@ class Agent:
     ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         move = self._generate_move_helper()
         observation, reward, terminated, truncated, info = self.__env.step(move)
+        print()
 
         self.__reward += reward
         self._obs = observation
@@ -41,6 +42,7 @@ class Agent:
         return self.reward
 
     def get_env_str(self) -> str:
+        print("A")
         return str(self.__env)
 
     # Abstract methods

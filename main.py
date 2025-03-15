@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     options = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
 
-    board = gym.make("Board-v0")
+    board = gym.make("Board-v0", render_mode="human")
 
     # Checks if board is a valid environment
     # print(check_env(board.unwrapped))
