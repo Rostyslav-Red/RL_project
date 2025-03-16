@@ -23,7 +23,26 @@ if __name__ == "__main__":
 
     obs, _ = board.reset(options=options, seed=100)
 
-    p = Policy.load(board, "policies/td_sarsa.json")
+    # p = Policy.load(board, "policies/value_iteration_policy.json")
+    p = DynamicProgrammingPolicy(
+        board, algorithm="ValueIteration", discount=0.1, stopping_criterion=0.00000001
+    )
+
+    """
+    Methods of choosing a dynamic policy:
+    
+    1. By loading a saved policy
+        p = Policy.load(board, "policies/value_iteration_policy.json")
+
+    2. By specifying the 'algorithm' argument of the instance of DynamicProgrammingPolicy
+        p = DynamicProgrammingPolicy(
+            board, algorithm="ValueIteration", discount=0.1, stopping_criterion=20
+        )
+    
+    3. By calling the 'find_policy' method on the instance of DynamicProgrammingPolicy
+        p = DynamicProgrammingPolicy(board).find_policy("ValueIteration")
+    """
+
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
     agent = PolicyAgent(board, p)
 

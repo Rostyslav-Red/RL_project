@@ -1,12 +1,10 @@
 from typing import List, Tuple, Annotated, Optional, Any, SupportsFloat, Dict, Union
 from gymnasium.core import ObsType, ActType, RenderFrame
 
-import actions
 from cell import Cell
 from constants import *
 import numpy as np
 import gymnasium as gym
-from actions import Actions
 from functools import reduce
 import warnings
 
@@ -91,54 +89,6 @@ class Board(gym.Env):
         self._cat_position = cat_position
 
     # movement
-    def possible_mouse_destinations(
-        self, current_position
-    ) -> List[Annotated[np.typing.NDArray[np.int_], (2,)]]:
-        """
-        Returns a list of destinations in which the mouse can move from a current position.
-        :return:
-        """
-        possible_directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
-        possible_destinations = [
-            current_position + np.array(direction) for direction in possible_directions
-        ]
-        updated_destinations = []
-
-        for direction, destination in zip(possible_directions, possible_destinations):
-
-            if (
-                0 <= destination[0] < self._board_size[0]
-                and 0 <= destination[1] < self._board_size[1]
-                and self._board[destination[0]][destination[1]].cell_type != 1
-            ):
-                updated_destinations.append(np.array(destination))
-        return updated_destinations
-
-    def possible_cat_destinations(
-        self, current_position
-    ) -> List[Annotated[np.typing.NDArray[np.int_], (2,)]]:
-        """
-        Returns a list of directions in which the cat can move from a current position.
-        :return:
-        """
-        possible_directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
-        possible_destinations = [
-            current_position + np.array(direction) for direction in possible_directions
-        ]
-        updated_directions = [np.array([0, 0])]
-
-        for direction, destination in zip(possible_directions, possible_destinations):
-            ind = np.nonzero(np.array(direction))[0][0]
-
-            if (
-                0 <= destination[0] < self._board_size[0]
-                and 0 <= destination[1] < self._board_size[1]
-                and direction[ind]
-                != self._board[current_position[0]][current_position[1]].walls[ind]
-            ):
-                updated_directions.append(np.array(destination))
-        return updated_directions
-
     def move(self, direction: Annotated[np.typing.NDArray[np.int_], (2,)]) -> bool:
         # moves the cat in the specified direction
         moved = self._move(direction)
@@ -256,7 +206,7 @@ class Board(gym.Env):
                     options["target_position"]
                 )
 
-                if (self._target_position == self._cat_position).all():
+                if np.array(self._target_position == self._cat_position).all():
                     warnings.warn(
                         "Cat and mouse position initialised to same position, randomising instead."
                     )
@@ -288,7 +238,7 @@ class Board(gym.Env):
             )
 
             # Make sure board doesn't randomise to a terminal state.
-            if (self._target_position == self._cat_position).all():
+            if np.array(self._target_position == self._cat_position).all():
                 return self.reset(seed=seed, options=options)
 
         self[self._cat_position].holds_agent = True
