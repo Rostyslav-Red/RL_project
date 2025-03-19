@@ -44,13 +44,11 @@ class TemporalDifferencePolicy(Policy):
             obs = self._obs_to_tuple(obs)
 
             action = policy_func(self._action_to_value(q, obs))
+            terminal, truncated = False, False
 
-            while True:
+            while not (terminal or truncated):
                 new_obs, reward, terminal, truncated, _ = env.step(action)
                 new_obs = self._obs_to_tuple(new_obs)
-
-                if terminal or truncated:
-                    break
 
                 new_action = policy_func(self._action_to_value(q, obs))
 
@@ -58,7 +56,7 @@ class TemporalDifferencePolicy(Policy):
                 q[obs, action] += alpha * (reward + gamma * q[new_obs, new_action] - q[obs, action])
 
                 action, obs = new_action, new_obs
-        print(q)
+
         return self._policy_from_q(q)
 
 

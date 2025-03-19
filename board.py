@@ -16,7 +16,7 @@ class Board(gym.Env):
     arguments. These children can then be registered.
     """
 
-    metadata = {"render_modes": ("human", "simple")}
+    metadata = {"render_modes": ("human", "simple", None)}
 
     def __init__(self, board: List[List[Cell]], render_mode: str):
         super(Board, self).__init__()
@@ -263,7 +263,8 @@ class Board(gym.Env):
         info = self._get_info()
 
         # Print board if rendering is set to human.
-        print(self.render())
+        if render := self.render():
+            print(render)
 
         return observation, reward, terminated, truncated, info
 
@@ -353,6 +354,8 @@ class Board(gym.Env):
             return self._human_render()
         elif self.render_mode == "simple":
             return self._simple_render()
+        elif not self.render_mode:
+            return None
         else:
             raise Exception("Unknown render mode")
 
