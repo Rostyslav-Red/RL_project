@@ -38,8 +38,7 @@ class MonteCarloPolicy(Policy):
             # print("state")
             for action in self._all_actions:
                 # print("action")
-                obs = {"cat_position": state.cat_position, "target_position": state.target_position} # doesn't work on tuple
-                env.reset(options=obs)
+                obs, _ = env.reset()
                 episode = []
                 while True:
                     new_obs, reward, terminal, truncated, _ = env.step(action)
@@ -48,7 +47,7 @@ class MonteCarloPolicy(Policy):
                     if terminal or truncated:
                         break
 
-                    new_action = policy[new_obs]
+                    new_action = policy.get_action(new_obs)
 
                     # Update episode
                     episode.append(((obs, action), float(reward)))

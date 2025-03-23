@@ -1,10 +1,12 @@
 import warnings
-from functools import cache
+from functools import cache, reduce
 from itertools import groupby
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Sequence, Iterable
 import gymnasium as gym
 from gymnasium.spaces import flatten_space, flatten
 from gymnasium.core import ObsType, ActType
+
+from action_sampler import ActionSampler, DeterministicAction, UniformActionSampler
 from constants import *
 import json
 
@@ -32,7 +34,7 @@ class Policy:
 
         self._act_space: gym.spaces.Discrete = act_space
 
-        self._all_actions = range(self._act_space.n)
+        self._all_actions = tuple(range(self._act_space.n))
 
         if seed:
             self._act_space.seed(seed)
@@ -46,7 +48,7 @@ class Policy:
         self._policy = policy if policy_valid else self.__initialise_randomly()
 
     # Dunder methods
-    def __getitem__(self, observation: ObsType | Tuple[int, ...]) -> ActType:
+    def __getitem__(self, observation: ObsType | Tuple[int, ...]) -> ActionSampler:
         """
         Takes an observation and maps it to the corresponding action.
 
@@ -56,14 +58,19 @@ class Policy:
         key = self._obs_to_tuple(observation) if not isinstance(observation, tuple) else observation
         return self._policy[key]
 
-    def __setitem__(self, key: ObsType, value: ActType) -> None:
+    def __setitem__(self, key: ObsType, value: int | ActionSampler) -> None:
         """
         Sets the action an observation maps to, to a different value.
 
         @param key: The observation for which the action is changed.
         @param value: The new action.
         """
-        self._policy[key] = value
+        if isinstance(value, int):
+            self._policy[key] = DeterministicAction(value)
+        elif isinstance(value, ActionSampler):
+            self._policy[key] = value
+        else:
+            raise ValueError(f"Policy value needs to be either an ActionSampler or integer, but is of type {type(value)}")
 
     def __iter__(self):
         """
@@ -72,23 +79,26 @@ class Policy:
         return self._policy.__iter__()
 
     # Dict methods
-    def keys(self):
+    def keys(self) -> Iterable[tuple[int, ...]]:
         """
         @return: All possible observations of the environment as flattened tuples.
         """
         return self._policy.keys()
 
-    def values(self):
+    def values(self) -> Iterable[ActionSampler]:
         """
         @return: The actions the Policy maps to.
         """
         return self._policy.values()
 
-    def items(self):
+    def items(self) -> Iterable[tuple[tuple[int,...], ActionSampler]]:
         """
         @return: All key value pairs.
         """
         return self._policy.items()
+
+    def get_action(self, state: ObsType | Tuple[int, ...]) -> ActType:
+        return self[state].sample()
 
     # Misc methods
     def __initialise_randomly(self) -> dict[tuple, ActType]:
@@ -98,9 +108,10 @@ class Policy:
         @return: A random policy dictionary
         """
         # Assign a random action from the action space to each key, as long as the key does not belong to a terminal state.
-        return {key: self._act_space.sample() for key in self.get_keys(self._obs_space)}
+        return {key: UniformActionSampler(self._all_actions) for key in self.get_keys(self._obs_space)}
 
-    def _action_to_value(self, q: dict[tuple[tuple[int, ...], int], float], observation: tuple[int, ...]) -> dict[int, float]:
+    @staticmethod
+    def _action_to_value(q: dict[tuple[tuple[int, ...], int], float], observation: tuple[int, ...]) -> dict[int, float]:
         """
         Given a dictionary mapping observation + action to a value, and an observation, gives back a dictionary of
         action mapping to value.
@@ -116,9 +127,9 @@ class Policy:
         obs_to_obs_act_val = groupby(q.items(), lambda kkv: kkv[0][0])
         policy = dict(
             map(lambda x: (x[0],  # x[0] is the observation
-                           max(x[1],  # x[1] is the tuple of ((obs, act), val), ...), taking max over it gives tuple with highest val.
+                           DeterministicAction(max(x[1],  # x[1] is the tuple of ((obs, act), val), ...), taking max over it gives tuple with highest val.
                                key=lambda y: y[1])[0][1]  # y[1] is the value, [0][1] on max gives back the action
-                           ),
+                           )),
                 obs_to_obs_act_val))
         return Policy(self._obs_space, self._act_space, policy=policy)
 
@@ -140,7 +151,7 @@ class Policy:
         if policy_dict:
             keys = set(Policy.get_keys(obs_space))
             keys_valid = len(keys.union(policy_dict.keys())) == len(keys)
-            vals_valid = len(tuple(filter(lambda val: not act_space.contains(val), policy_dict.values()))) == 0
+            vals_valid = len(tuple(filter(lambda act_sampler: len(tuple(filter(lambda key: act_space.contains(key), act_sampler.probabilities.keys()))) == 0, policy_dict.values()))) == 0
             policy_valid = keys_valid and vals_valid
         return policy_valid
 
@@ -191,7 +202,7 @@ class Policy:
         @param file_name: The file name under which the policy is saved.
         """
         with open(file_name, "w") as f:
-            json_dict = {str(key): int(value) for key, value in self.items()}
+            json_dict = {str(key): json.dumps(value.probabilities) for key, value in self.items()}
             f.write(json.dumps(json_dict))
 
     @staticmethod
@@ -206,5 +217,5 @@ class Policy:
         """
         with open(file_name, "r") as f:
             txt = json.loads(f.read())
-        policy_dict = {tuple(map(int, filter(lambda x: x.isnumeric(), tuple(key)))): value for key, value in txt.items()}
+        policy_dict = {tuple(map(int, filter(lambda x: x.isnumeric(), tuple(key)))): ActionSampler.load(value) for key, value in txt.items()}
         return Policy(environment.observation_space, environment.action_space, policy=policy_dict)

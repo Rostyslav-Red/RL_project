@@ -17,16 +17,16 @@ if __name__ == "__main__":
     # print(check_env(board.unwrapped))
 
     ### Block for computing policy, only run when computing a new policy
-    # p = TemporalDifferencePolicy(board.observation_space, board.action_space).sarsa(board, n_episodes=1000)
-    # p.save("policies/td_sarsa.json")
+    # p = TemporalDifferencePolicy(board.observation_space, board.action_space).q_learning(board, n_episodes=100, alpha=0.1, gamma=0.9)
+    # p.save("policies/td_qlearning.json")
     ###
 
     obs, _ = board.reset(options=options, seed=100)
 
     # p = Policy.load(board, "policies/value_iteration_policy.json")
-    p = DynamicProgrammingPolicy(
-        board, algorithm="ValueIteration", discount=0.1, stopping_criterion=0.00000001
-    )
+    # p = DynamicProgrammingPolicy(
+    #    board, algorithm="PolicyIteration", discount=0.1, stopping_criterion=0.00000001
+    # )
 
     """
     Methods of choosing a dynamic policy:
@@ -42,6 +42,7 @@ if __name__ == "__main__":
     3. By calling the 'find_policy' method on the instance of DynamicProgrammingPolicy
         p = DynamicProgrammingPolicy(board).find_policy("ValueIteration")
     """
+    p = Policy.load(board, "policies/td_qlearning.json")
 
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
     agent = PolicyAgent(board, p)

@@ -92,5 +92,4 @@ class TemporalDifferencePolicy(Policy):
                 if terminal or truncated:
                     break
 
-        print(q)
         return self._policy_from_q(q)
