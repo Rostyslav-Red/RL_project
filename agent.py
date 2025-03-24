@@ -1,16 +1,9 @@
 from abc import abstractmethod
-from copy import deepcopy
-from functools import reduce
-from itertools import pairwise
-from operator import add
 from typing import Any, SupportsFloat, Optional
 import gymnasium as gym
 from gymnasium.core import ObsType
 import numpy as np
-import torch
-from torch import nn
 from policy import Policy
-from temporal_difference_policy import epsilon_greedy
 
 
 class Agent:
@@ -92,6 +85,23 @@ class PolicyAgent(Agent):
     def _generate_move_helper(self) -> int:
         return self.__policy.get_action(self._obs)
 
+    @staticmethod
+    def sample_episode(env: gym.Env, policy: Policy, seed = None) -> tuple:
+        obs, _ = env.reset(seed=seed)
+        obs = tuple(map(int, gym.spaces.flatten(env.observation_space, obs)))
+        terminated, truncated = False, False
+
+        observations, actions, rewards, new_observations = (), (), (), ()
+        while not (terminated or truncated):
+            actions += (policy.get_action(obs),)
+            new_obs, reward, terminated, truncated, _ = env.step(actions[-1])
+            new_obs = tuple(map(int, gym.spaces.flatten(env.observation_space, new_obs)))
+            observations += (obs,)
+            rewards += (reward,)
+            new_observations += (new_obs,)
+
+        return observations, actions, rewards, new_observations
+
 
 class HumanAgent(Agent):
     def __init__(self, env: gym.Env):
@@ -112,78 +122,3 @@ class HumanAgent(Agent):
             case _:
                 print("Invalid direction. Please try again:")
                 return self._generate_move_helper()
-
-
-class DeepQLearningAgent(Agent):
-
-    def __init__(self, env: gym.Env, model: nn.Module, lr=0.01):
-        super().__init__(env)
-        self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.__model = model.to(self.__device)
-        self.__criterion = nn.MSELoss()
-        self.__optimiser = torch.optim.SGD(self.__model.parameters(), lr=lr)
-
-    @property
-    def model(self):
-        return self.__model
-
-    def train(self, env: gym.Env, n_episodes: int, seed = None, gamma: float = 0.9, retarget: int = 10, epsilon = 0.5):
-        self.__model.train()
-
-        for i in range(n_episodes):
-            print(i)
-            obs, _ = env.reset(seed=seed)
-            obs = self._obs_to_tensor(obs)
-
-            target_model = deepcopy(self.__model)
-            terminated, truncated = False, False
-            t = 0
-            while not (terminated or truncated):
-                self.__optimiser.zero_grad()
-                qs = self.__model.forward(obs)
-                action = epsilon_greedy({act: qs[act] for act in range(self._action_space.n)}, epsilon=epsilon)
-
-                new_obs, reward, terminated, truncated, _ = env.step(action)
-                new_obs = self._obs_to_tensor(new_obs)
-                target_qs = target_model.forward(new_obs)
-
-                target = reward + gamma * torch.max(target_qs)
-                loss = (target - qs[action]) ** 2
-                loss.backward()
-                self.__optimiser.step()
-
-                t += 1
-                if t % retarget == 0:
-                    target_model = deepcopy(self.__model)
-
-                obs = new_obs
-
-        self.__model.eval()
-
-    def _generate_move_helper(self) -> int:
-        with torch.no_grad():
-            obs = self._obs_to_tensor(self._obs)
-            return int(torch.argmax(self.__model.forward(obs)))
-
-    def _obs_to_tensor(self, obs: ObsType) -> torch.Tensor:
-        return torch.Tensor(tuple(map(int, gym.spaces.flatten(self._obs_space, obs)))).to(self.__device)
-
-    def save(self, file_name: str):
-        torch.save(self.__model, file_name)
-
-    @staticmethod
-    def build_model(env: gym.Env, layer_sizes: tuple[int, ...], lr=0.01) -> 'DeepQLearningAgent':
-        input_size = len(gym.spaces.flatten_space(env.observation_space).low)
-        output_size = int(env.action_space.n)
-
-        layer_sizes = (input_size,) + layer_sizes + (output_size,)
-        layers = tuple(reduce(add, map(lambda x: (nn.Linear(x[0], x[1]), nn.ReLU()), pairwise(layer_sizes))))
-
-        model = nn.Sequential(*layers[:-1])
-        return DeepQLearningAgent(env, model, lr=lr)
-
-    @staticmethod
-    def load(environment: gym.Env, file_name: str) -> 'DeepQLearningAgent':
-        model = torch.load(file_name, weights_only=False)
-        model.eval()
-        return DeepQLearningAgent(environment, model)
