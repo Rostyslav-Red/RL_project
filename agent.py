@@ -90,7 +90,7 @@ class PolicyAgent(Agent):
         self.__policy = policy if policy else Policy(env)
 
     def _generate_move_helper(self) -> int:
-        return self.__policy[self._obs]
+        return self.__policy.get_action(self._obs)
 
 
 class HumanAgent(Agent):

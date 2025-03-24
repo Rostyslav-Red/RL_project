@@ -91,21 +91,20 @@ class DynamicProgrammingPolicy(Policy):
             # The dictionary for the updated prediction for all state values
             new_all_v = all_v.copy()
 
-            for state, action in self.items():
+            for state, action_sampler in self.items():
                 # If we are in a terminal state, it's value is always 0
-                if not self.P[state, action]:
+                if not self.P[state, action_sampler.sample()]:
                     new_all_v[state] = 0
                     continue
 
                 v = all_v[state]
-                state_chance = 1 / len(self.P[state, action])
+                ps = action_sampler.probabilities
 
-                new_v = sum(
+                new_v = sum(tuple(ps[action] * sum(
                     tuple(
-                        state_chance * (self.R[new_state] + discount * all_v[new_state])
+                        (1 / len(self.P[state, action])) * (self.R[new_state] + discount * all_v[new_state])
                         for new_state in self.P[state, action]
-                    )
-                )
+                    )) for action in ps.keys()))
 
                 delta = max(delta, abs(new_v - v))
                 new_all_v[state] = new_v
@@ -138,17 +137,9 @@ class DynamicProgrammingPolicy(Policy):
             # Compute the expected value for all actions
             for action in self._all_actions:
                 action_value = sum(
-                    map(
-                        lambda new_state: self.R[new_state]
-                        + value_dict[new_state] * discount,
-                        # Get value for each successor
-                        self.P[
-                            (state, action)
-                        ],  # Get all possible successors for action
-                    )
-                ) / len(
-                    self.P[(state, action)]
-                )  # Compute average value for action
+                    map(lambda new_state: self.R[new_state] + value_dict[new_state] * discount, # Get value for each successor
+                        self.P[(state, action)],  # Get all possible successors for action
+                    )) / len(self.P[(state, action)])  # Compute average value for action
 
                 values[action] = action_value
 
@@ -156,7 +147,7 @@ class DynamicProgrammingPolicy(Policy):
             new_action = max(values.items(), key=lambda kv: kv[1])[0]
 
             # Check if changes were made and change policy
-            made_changes = new_action != self[state] or made_changes
+            made_changes = new_action != self.get_action(state) or made_changes
             policy[state] = new_action
 
         return policy, made_changes
@@ -212,18 +203,14 @@ class DynamicProgrammingPolicy(Policy):
 
                 for action in self._all_actions:
 
-                    if not self.P.get((state, action)):
+                    if not self.P[state, action]:
                         new_all_v[state] = 0
                         continue
 
                     state_chance = 1 / len(self.P[state, action])
 
                     new_v = sum(
-                        tuple(
-                            state_chance
-                            * (self.R[new_state] + discount * all_v[new_state])
-                            for new_state in self.P[state, action]
-                        )
+                        tuple(state_chance* (self.R[new_state] + discount * all_v[new_state]) for new_state in self.P[state, action])
                     )
 
                     if new_v > best_val:
