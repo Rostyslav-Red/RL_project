@@ -49,6 +49,7 @@ class ActionSampler:
         """
         return dict(deepcopy(self.__probabilities))
 
+    # Factory methods
     @staticmethod
     def load(txt: str) -> 'ActionSampler':
         """
@@ -60,47 +61,32 @@ class ActionSampler:
         probabilities = {int(action): float(probability) for action, probability in json.loads(txt).items()}
         return ActionSampler(probabilities)
 
-
-class UniformActionSampler(ActionSampler):
-    """
-    This ActionSampler samples all action with uniform probabilities.
-    """
-
-    def __init__(self, act_space: tuple[int, ...], generator: Optional[np.random._generator] = None):
+    @staticmethod
+    def uniform_action_sampler(act_space: tuple[int, ...], generator: Optional[np.random._generator] = None) -> 'ActionSampler':
         """
-        Constructs an ActionSampler.
+        Constructs a uniform action sampler, which samples all action with uniform probabilities.
 
         @param act_space: A tuple of all actions this action sampler can return.
         @param generator: The numpy random generator used to sample actions.
         """
-
         probabilities = {action: 1 / len(act_space) for action in act_space}
-        super().__init__(probabilities, generator)
+        return ActionSampler(probabilities, generator)
 
-
-class DeterministicAction(ActionSampler):
-    """
-    This ActionSampler is deterministic, so it always returns the action specified. Exists for compatibility.
-    """
-
-    def __init__(self, action: int):
+    @staticmethod
+    def deterministic_action_sampler(action: int) -> 'ActionSampler':
         """
-        Constructs the DeterministicActionSampler.
+        Constructs a deterministic action sampler, which always returns the specified action when calling .sample.
 
         @param action: The action that this Sampler will always return.
         """
-        super().__init__({action: 1})
+        return ActionSampler({action: 1})
 
-
-class EpsilonGreedyActionSampler(ActionSampler):
-    """
-    This ActionSampler samples a given action at a probability of epsilon, while in all other cases taking a random
-    sample from the action space.
-    """
-
-    def __init__(self, act_space: tuple[int], optimal_action: int, epsilon: float, generator: Optional[np.random._generator] = None):
+    @staticmethod
+    def epsilon_greedy_action_sampler(act_space: tuple[int], optimal_action: int, epsilon: float,
+                                      generator: Optional[np.random._generator] = None) -> 'ActionSampler':
         """
-        Constructs and EpsilonSoftActionSampler.
+        Constructs an epsilon soft action sampler, samples a given action at a probability of epsilon,
+        while in all other cases taking a random sample from the action space.
 
         @param act_space: The action space from which the actions will be sampled.
         @param optimal_action: The optimal action, picked with probability epsilon.
@@ -112,4 +98,4 @@ class EpsilonGreedyActionSampler(ActionSampler):
         probabilities = {action: epsilon / len(act_space) for action in act_space}
         probabilities[optimal_action] = 1 - epsilon + epsilon / len(act_space)
 
-        super().__init__(probabilities, generator)
+        return ActionSampler(probabilities, generator)
