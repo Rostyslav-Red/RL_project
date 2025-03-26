@@ -20,7 +20,6 @@ class Agent:
         self,
     ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         move = self._generate_move_helper()
-        print(move)
         observation, reward, terminated, truncated, info = self.__env.step(move)
 
         self.__reward += reward
@@ -91,7 +90,7 @@ class PolicyAgent(Agent):
         obs = tuple(map(int, gym.spaces.flatten(env.observation_space, obs)))
         terminated, truncated = False, False
 
-        observations, actions, rewards, new_observations = (), (), (), ()
+        observations, actions, rewards, new_observations, ended = (), (), (), (), ()
         while not (terminated or truncated):
             actions += (policy.get_action(obs),)
             new_obs, reward, terminated, truncated, _ = env.step(actions[-1])
@@ -99,8 +98,9 @@ class PolicyAgent(Agent):
             observations += (obs,)
             rewards += (reward,)
             new_observations += (new_obs,)
+            ended += (int(terminated or truncated),)
 
-        return observations, actions, rewards, new_observations
+        return observations, actions, rewards, new_observations, ended
 
 
 class HumanAgent(Agent):

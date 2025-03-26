@@ -29,35 +29,33 @@ class DeepQLearningAgent(Agent):
               seed = None, gamma: float = 0.9, retarget: int = 10):
         self.__model.train()
 
-
         policy = policy if policy else Policy(env.observation_space, env.action_space)
         data = RLData(env, n_episodes, policy, seed=seed)
         loader = DataLoader(data, batch_size=batch_size, shuffle=True)
+        target_model = deepcopy(self.__model)
 
         for i in range(n_epochs):
             t = 0
 
-            target_model = deepcopy(self.__model)
-
-            for obs, action, reward, new_obs in loader:
+            for obs, action, reward, new_obs, ended in loader:
                 self.__optimiser.zero_grad()
                 obs = torch.tensor(np.array(obs)).to(self.__device).float().T
                 new_obs = torch.tensor(np.array(new_obs)).to(self.__device).float().T
                 reward = reward.to(self.__device)
                 action = action.to(self.__device)
+                ended = ended.to(self.__device)
 
                 qs = self.__model.forward(obs)
                 target_qs = target_model.forward(new_obs)
 
-                target = reward + gamma * torch.max(target_qs)
-                loss = ((target - qs[:, action]) ** 2).mean()
+                target = (reward + gamma * torch.max(target_qs, dim=1)[0] * (1 - ended)).detach()
+                loss = ((target - qs.gather(1, action.unsqueeze(1)).squeeze(1)) ** 2).mean()
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.__model.parameters(), max_norm=1.0)  # Clip gradient since it otherwise explodes.
                 self.__optimiser.step()
 
                 t += 1
                 if t % retarget == 0:
-                    target_model = deepcopy(self.__model)
+                    target_model.load_state_dict(self.__model.state_dict())
 
             print(i)
 
@@ -70,7 +68,7 @@ class DeepQLearningAgent(Agent):
     def _generate_move_helper(self) -> int:
         with torch.no_grad():
             obs = self._obs_to_tensor(self._obs)
-            return int(torch.argmax(self.__model.forward(obs)))
+            return int(self.__model.forward(obs).argmax())
 
     def _obs_to_tensor(self, obs: ObsType) -> torch.Tensor:
         return torch.Tensor(tuple(map(int, gym.spaces.flatten(self._obs_space, obs)))).to(self.__device)
@@ -103,15 +101,17 @@ class RLData(torch.utils.data.Dataset):
         self.__actions = ()
         self.__rewards = ()
         self.__new_observations = ()
+        self.__ended = ()
         for _ in range(n_episodes):
-            observations, actions, rewards, new_observations = PolicyAgent.sample_episode(env, policy, seed=seed)
+            observations, actions, rewards, new_observations, ended = PolicyAgent.sample_episode(env, policy, seed=seed)
             self.__observations += observations
             self.__actions += actions
             self.__rewards += rewards
             self.__new_observations += new_observations
+            self.__ended += ended
 
     def __len__(self):
         return len(self.__observations)
 
-    def __getitem__(self, i) -> tuple[tuple[int, ...], int, float, tuple[int, ...]]:
-        return self.__observations[i], self.__actions[i], self.__rewards[i], self.__new_observations[i]
+    def __getitem__(self, i) -> tuple[tuple[int, ...], int, float, tuple[int, ...], bool]:
+        return self.__observations[i], self.__actions[i], self.__rewards[i], self.__new_observations[i], self.__ended[i]

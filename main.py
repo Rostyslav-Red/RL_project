@@ -11,9 +11,9 @@ import torch
 if __name__ == "__main__":
     gym.register(id="Board-v0", entry_point="board:ConfiguredBoard")
 
-    options = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
+    options = {"cat_position": np.array([0, 2]), "target_position": np.array([2, 0])}
 
-    board = gym.make("Board-v0", render_mode="human")
+    board = gym.make("Board-v0", render_mode=None)
 
     # Checks if board is a valid environment
     # print(check_env(board.unwrapped))
@@ -48,14 +48,14 @@ if __name__ == "__main__":
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
     agent = DeepQLearningAgent.build_model(board, (10, 10))
 
-    model = agent.model
-
-    # agent.train(board, 10, retarget=100, n_episodes=1000)
+    # agent.train(board, 50, retarget=100, n_episodes=1000)
     # agent.save("policies/model.pt")
     agent = DeepQLearningAgent.load(board, "policies/model.pt")
 
-    # for observation in Policy.get_keys(board.observation_space):
-    #     print(observation)
-    #     print(model.forward((torch.tensor(tuple(map(float, observation))).to("cuda"))))
+    model = agent.model
+
+    for observation in Policy.get_keys(board.observation_space):
+        print(observation)
+        print(model.forward((torch.tensor(tuple(map(float, observation))).to("cuda"))))
 
     print(f"Obtained reward: {agent.run_agent(obs)}")
