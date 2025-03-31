@@ -1,3 +1,5 @@
+import json
+from threading import Thread
 from typing import Optional
 from torch.utils.data import DataLoader
 from agent import Agent, PolicyAgent
@@ -25,16 +27,15 @@ class DeepQLearningAgent(Agent):
     def model(self):
         return self.__model
 
-    def train(self, env: gym.Env, n_epochs: int, n_episodes = 10, batch_size = 64, policy: Optional[Policy] = None,
-              seed = None, gamma: float = 0.9, retarget: int = 10):
+    def train(self, n_epochs: int, data: 'RLData', batch_size = 64, gamma: float = 0.9, retarget: int = 10):
         self.__model.train()
 
-        policy = policy if policy else Policy(env.observation_space, env.action_space)
-        data = RLData(env, n_episodes, policy, seed=seed)
         loader = DataLoader(data, batch_size=batch_size, shuffle=True)
         target_model = deepcopy(self.__model)
 
         for i in range(n_epochs):
+            print(f"Epoch {i + 1}/{n_epochs}")
+
             t = 0
 
             for obs, action, reward, new_obs, ended in loader:
@@ -56,8 +57,6 @@ class DeepQLearningAgent(Agent):
                 t += 1
                 if t % retarget == 0:
                     target_model.load_state_dict(self.__model.state_dict())
-
-            print(i)
 
         self.__model.eval()
 
@@ -96,22 +95,58 @@ class DeepQLearningAgent(Agent):
 
 class RLData(torch.utils.data.Dataset):
 
-    def __init__(self, env: gym.Env, n_episodes: int, policy: Policy, seed=None):
-        self.__observations = ()
-        self.__actions = ()
-        self.__rewards = ()
-        self.__new_observations = ()
-        self.__ended = ()
-        for _ in range(n_episodes):
-            observations, actions, rewards, new_observations, ended = PolicyAgent.sample_episode(env, policy, seed=seed)
-            self.__observations += observations
-            self.__actions += actions
-            self.__rewards += rewards
-            self.__new_observations += new_observations
-            self.__ended += ended
+    def __init__(self, observations: tuple[tuple[int, ...], ...], actions: tuple[int, ...], rewards: tuple[int, ...], new_observations: tuple[tuple[int, ...]], ended: tuple[int]):
+        self.__observations = observations
+        self.__actions = actions
+        self.__rewards = rewards
+        self.__new_observations = new_observations
+        self.__ended = ended
 
     def __len__(self):
         return len(self.__observations)
 
-    def __getitem__(self, i) -> tuple[tuple[int, ...], int, float, tuple[int, ...], bool]:
+    def __getitem__(self, i) -> tuple[tuple[int, ...], int, float, tuple[int, ...], int]:
         return self.__observations[i], self.__actions[i], self.__rewards[i], self.__new_observations[i], self.__ended[i]
+
+    @staticmethod
+    def sample_data(env: gym.Env, n_episodes: int, policy: Optional[Policy] = None, seed=None) -> 'RLData':
+        policy = policy if policy else Policy(env.observation_space, env.action_space, seed=seed)
+        observations, actions, rewards, new_observations, ended = (), (), (), (), ()
+
+        for i in range(n_episodes):
+            obs, acts, rs, s_primes, terminated = PolicyAgent.sample_episode(env, policy, seed=seed)
+            observations += obs
+            actions += acts
+            rewards += rs
+            new_observations += s_primes
+            ended += terminated
+
+            if i % 1000 == 0:
+                print(f"Sampled {i} episodes")
+        print(len(observations))
+        return RLData(observations, actions, rewards, new_observations, ended)
+
+    def save(self, file_name: str):
+        data_dict = {
+            "observations": json.dumps(self.__observations),
+            "actions": json.dumps(self.__actions),
+            "rewards": json.dumps(self.__rewards),
+            "new_observations": json.dumps(self.__new_observations),
+            "ended": json.dumps(self.__ended)
+        }
+        with open(file_name, "w") as f:
+            f.write(json.dumps(data_dict))
+
+    @staticmethod
+    def load(file_name: str) -> 'RLData':
+        with open(file_name, "r") as f:
+            data_dict = json.loads(f.read())
+
+        # Make sure everything is tuple
+        data_dict["observations"] = tuple(map(tuple, data_dict["observations"]))
+        data_dict["actions"] = tuple(data_dict["actions"])
+        data_dict["rewards"] = tuple(data_dict["rewards"])
+        data_dict["new_observations"] = tuple(map(tuple, data_dict["new_observations"]))
+        data_dict["ended"] = tuple(data_dict["ended"])
+
+        return RLData(**data_dict)

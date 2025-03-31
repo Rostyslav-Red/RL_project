@@ -98,6 +98,7 @@ class PolicyAgent(Agent):
             observations += (obs,)
             rewards += (reward,)
             new_observations += (new_obs,)
+            obs = new_obs
             ended += (int(terminated or truncated),)
 
         return observations, actions, rewards, new_observations, ended

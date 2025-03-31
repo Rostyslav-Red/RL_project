@@ -1,5 +1,5 @@
 from agent import RandomAgent, HumanAgent, PolicyAgent
-from deep_qlearning import DeepQLearningAgent
+from deep_qlearning import DeepQLearningAgent, RLData
 import numpy as np
 import gymnasium as gym
 from gymnasium.utils.env_checker import check_env
@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     options = {"cat_position": np.array([0, 2]), "target_position": np.array([2, 0])}
 
-    board = gym.make("Board-v0", render_mode=None)
+    board = gym.make("Board-v0", render_mode="human")
 
     # Checks if board is a valid environment
     # print(check_env(board.unwrapped))
@@ -46,16 +46,19 @@ if __name__ == "__main__":
     """
 
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
-    agent = DeepQLearningAgent.build_model(board, (10, 10))
 
-    # agent.train(board, 50, retarget=100, n_episodes=1000)
+    # Generate episode data
+    # data = RLData.sample_data(board, 1000)
+    # data.save("policies/episodes.json")
+    # data = RLData.load("policies/episodes.json")
+
+    # Create Neural Network, train and save it
+    # agent = DeepQLearningAgent.build_model(board, (10, 10))
+    # agent.train(10, data, retarget=100, batch_size=1024)
     # agent.save("policies/model.pt")
+
+    # Load DeepQLearningAgent from weights
     agent = DeepQLearningAgent.load(board, "policies/model.pt")
 
-    model = agent.model
-
-    for observation in Policy.get_keys(board.observation_space):
-        print(observation)
-        print(model.forward((torch.tensor(tuple(map(float, observation))).to("cuda"))))
 
     print(f"Obtained reward: {agent.run_agent(obs)}")
