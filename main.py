@@ -1,5 +1,5 @@
 from agent import RandomAgent, HumanAgent, PolicyAgent
-from deep_qlearning import DeepQLearningAgent, RLData
+from deep_qlearning import DeepQLearningAgent, get_data_and_train, RLData
 import numpy as np
 import gymnasium as gym
 from gymnasium.utils.env_checker import check_env
@@ -43,21 +43,24 @@ if __name__ == "__main__":
     
     3. By calling the 'find_policy' method on the instance of DynamicProgrammingPolicy
         p = DynamicProgrammingPolicy(board).find_policy("ValueIteration")
+        
+        
+    Methods of creating a Deep Q-Learning agent:
+    1. By loading saved model weights
+        agent = DeepQLearningAgent.load(board, "path-to-weights.pt")
+    
+    2. By training a new model on a dataset. Data can be loaded from sampled data. Note there are many customisation 
+       options for training, read the documentation for those.
+        data = RLData.load("policies/episodes.json")
+        agent = DeepQLearningAgent.build_model(board, (hidden_layer1, hidden_layer2, ...))
+        agent.train(n_epochs=10, data=data, **kwargs)
+        
+    3. By training a new model on a newly sampled dataset. Note there are many customisation options for training, 
+       read the documentation for those.
+        agent = get_data_and_train(board, (hidden_layer1, hidden_layer2, ...), **kwargs)
     """
 
-    # Possible agents: HumanAgent, RandomAgent, PolicyAgent
-
-    # Generate episode data
-    # data = RLData.sample_data(board, 1000)
-    # data.save("policies/episodes.json")
-    # data = RLData.load("policies/episodes.json")
-
-    # Create Neural Network, train and save it
-    # agent = DeepQLearningAgent.build_model(board, (10, 10))
-    # agent.train(10, data, retarget=100, batch_size=1024)
-    # agent.save("policies/model.pt")
-
-    # Load DeepQLearningAgent from weights
+    # Possible agents: HumanAgent, RandomAgent, PolicyAgent, DeepQLearningAgent
     agent = DeepQLearningAgent.load(board, "policies/model.pt")
 
 
