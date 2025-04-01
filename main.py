@@ -5,6 +5,7 @@ from gymnasium.utils.env_checker import check_env
 from dynamic_programming_policy import DynamicProgrammingPolicy
 from policy import Policy
 from temporal_difference_policy import TemporalDifferencePolicy
+from monte_carlo_policy import MonteCarloPolicy
 
 if __name__ == "__main__":
     gym.register(id="Board-v0", entry_point="board:ConfiguredBoard")
@@ -27,7 +28,9 @@ if __name__ == "__main__":
     # p = DynamicProgrammingPolicy(
     #    board, algorithm="PolicyIteration", discount=0.1, stopping_criterion=0.00000001
     # )
-
+    # p = MonteCarloPolicy(board)
+    # p.find(1000, 0.8, 0.1)
+    # p.save("policies/monte_carlo_policy.json")
     """
     Methods of choosing a dynamic policy:
     
@@ -42,7 +45,7 @@ if __name__ == "__main__":
     3. By calling the 'find_policy' method on the instance of DynamicProgrammingPolicy
         p = DynamicProgrammingPolicy(board).find_policy("ValueIteration")
     """
-    p = Policy.load(board, "policies/td_qlearning.json")
+    p = Policy.load(board, "policies/monte_carlo_policy.json")
 
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
     agent = PolicyAgent(board, p)
