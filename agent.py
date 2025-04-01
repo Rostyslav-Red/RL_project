@@ -3,7 +3,6 @@ from typing import Any, SupportsFloat, Optional
 import gymnasium as gym
 from gymnasium.core import ObsType
 import numpy as np
-
 from policy import Policy
 
 
@@ -11,6 +10,7 @@ class Agent:
     def __init__(self, env: gym.Env):
         self.__reward: SupportsFloat = 0
         self._action_space = env.action_space
+        self._obs_space = env.observation_space
 
         self.__env: gym.Env = env
         self._obs: Optional[ObsType] = None
@@ -21,7 +21,6 @@ class Agent:
     ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         move = self._generate_move_helper()
         observation, reward, terminated, truncated, info = self.__env.step(move)
-        print()
 
         self.__reward += reward
         self._obs = observation
@@ -83,7 +82,48 @@ class PolicyAgent(Agent):
         self.__policy = policy if policy else Policy(env)
 
     def _generate_move_helper(self) -> int:
-        return self.__policy[self._obs]
+        return self.__policy.get_action(self._obs)
+
+    @staticmethod
+    def sample_episode(
+            env: gym.Env,
+            policy: Policy,
+            seed = None
+    ) -> tuple[tuple[tuple[int, ...]], tuple[int, ...], tuple[float, ...], tuple[tuple[int, ...]], tuple[int, ...]]:
+        """
+        Samples an episode from start to finish from the given environment under the given policy.
+
+        @param env: Environment the episodes are sampled from.
+        @param policy: Policy used for action generation.
+        @param seed: Random seed used, optional.
+        @return: A tuple of the form (States, Actions, Rewards, New States, Terminateds)
+        """
+
+        # Reset environment and initialise variables.
+        obs, _ = env.reset(seed=seed)
+        obs = tuple(map(int, gym.spaces.flatten(env.observation_space, obs)))
+        terminated, truncated = False, False
+        observations, actions, rewards, new_observations, ended = (), (), (), (), ()
+
+        # Loop until episode finishes.
+        while not (terminated or truncated):
+            # Generate action under given policy.
+            actions += (policy.get_action(obs),)
+
+            # Take action.
+            new_obs, reward, terminated, truncated, _ = env.step(actions[-1])
+
+            # Convert observation to proper form.
+            new_obs = tuple(map(int, gym.spaces.flatten(env.observation_space, new_obs)))
+
+            # Save all needed data.
+            observations += (obs,)
+            rewards += (reward,)
+            new_observations += (new_obs,)
+            obs = new_obs
+            ended += (int(terminated or truncated),)
+
+        return observations, actions, rewards, new_observations, ended
 
 
 class HumanAgent(Agent):
