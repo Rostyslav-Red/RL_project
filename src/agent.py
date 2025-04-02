@@ -37,13 +37,13 @@ class Agent:
         )
 
     def run_agent(self, initial_obs: ObsType) -> SupportsFloat:
+        print(self.__env.render())
         self._obs = initial_obs
         while not self.terminated:
             self.__generate_move()
         return self.reward
 
     def get_env_str(self) -> str:
-        print("A")
         return str(self.__env)
 
     # Abstract methods
@@ -81,18 +81,23 @@ class PolicyAgent(Agent):
 
     def __init__(self, env: gym.Env, policy: Optional[Policy | None] = None):
         super().__init__(env)
-        self.__policy = policy if policy else Policy(env.observation_space, env.action_space)
+        self.__policy = (
+            policy if policy else Policy(env.observation_space, env.action_space)
+        )
 
     def _generate_move_helper(self) -> int:
         return self.__policy.get_action(self._obs)
 
     @staticmethod
     def sample_episode(
-            env: gym.Env,
-            policy: Policy,
-            seed = None,
-            reset_options: dict[str, Any] = None
-    ) -> tuple[tuple[tuple[int, ...]], tuple[int, ...], tuple[float, ...], tuple[tuple[int, ...]], tuple[int, ...]]:
+        env: gym.Env, policy: Policy, seed=None, reset_options: dict[str, Any] = None
+    ) -> tuple[
+        tuple[tuple[int, ...]],
+        tuple[int, ...],
+        tuple[float, ...],
+        tuple[tuple[int, ...]],
+        tuple[int, ...],
+    ]:
         """
         Samples an episode from start to finish from the given environment under the given policy.
 
@@ -118,7 +123,9 @@ class PolicyAgent(Agent):
             new_obs, reward, terminated, truncated, _ = env.step(actions[-1])
 
             # Convert observation to proper form.
-            new_obs = tuple(map(int, gym.spaces.flatten(env.observation_space, new_obs)))
+            new_obs = tuple(
+                map(int, gym.spaces.flatten(env.observation_space, new_obs))
+            )
 
             # Save all needed data.
             observations += (obs,)

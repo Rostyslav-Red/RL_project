@@ -25,7 +25,7 @@ class Board(gym.Env):
         assert (
             render_mode in Board.metadata["render_modes"]
         ), f"ValueError: {render_mode} is not a valid render_mode"
-        self.render_mode = render_mode
+        self._render_mode = render_mode
 
         # Ensures all rows have the same length (it also ensures the same thing for the columns)
         assert (
@@ -83,10 +83,29 @@ class Board(gym.Env):
     def cat_position(self):
         return self._cat_position
 
+    @property
+    def target_position(self):
+        return self._target_position
+
+    @property
+    def render_mode(self):
+        return self._render_mode
+
     # setters
     @cat_position.setter
     def cat_position(self, cat_position: Tuple[int]):
         self._cat_position = cat_position
+
+    @target_position.setter
+    def target_position(self, target_position: Tuple[int]):
+        self._target_position = target_position
+
+    @render_mode.setter
+    def render_mode(self, render_mode: str):
+        assert (
+            render_mode in Board.metadata["render_modes"]
+        ), f"ValueError: {render_mode} is not a valid render_mode"
+        self._render_mode = render_mode
 
     # movement
     def move(self, direction: Annotated[np.typing.NDArray[np.int_], (2,)]) -> bool:
@@ -350,11 +369,11 @@ class Board(gym.Env):
         return result
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
-        if self.render_mode == "human":
+        if self._render_mode == "human":
             return self._human_render()
-        elif self.render_mode == "simple":
+        elif self._render_mode == "simple":
             return self._simple_render()
-        elif not self.render_mode:
+        elif not self._render_mode:
             return None
         else:
             raise Exception("Unknown render mode")

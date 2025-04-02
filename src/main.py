@@ -21,12 +21,20 @@ if __name__ == "__main__":
 
     # Create policy here, following instructions found in README.md
     # Possible policies: Policy, DynamicProgrammingPolicy, MonteCarloPolicy, TemporalDifferencePolicy
-    policy = TemporalDifferencePolicy(board.observation_space, board.action_space, algorithm="SARSA", env=board,
-                                     n_episodes=1000, alpha=0.5, gamma=0.9)
+    policy = TemporalDifferencePolicy(
+        board.observation_space,
+        board.action_space,
+        algorithm="SARSA",
+        env=board,
+        n_episodes=1000,
+        alpha=0.5,
+        gamma=0.9,
+    )
 
     # Create agent here
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent, DeepQLearningAgent
-    agent = PolicyAgent(board, policy)
+    # obs, _ = board.reset(options=options)
 
+    agent = PolicyAgent(board, policy)
     # Run agent and print final reward.
     print(f"Obtained reward: {agent.run_agent(obs)}")
