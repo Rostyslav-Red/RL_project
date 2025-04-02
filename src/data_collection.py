@@ -82,7 +82,7 @@ if __name__ == "__main__":
         gamma=0.9, epsilon=0.3
        )
 
-    plot_rewards_over_time(board, policy_iteration, n_episodes=1000,
+    plot_rewards_over_time(board, monte_carlo, n_episodes=1000,
                            plot_save_path="../plots/r_over_time/monte_carlo_r_over_time.png", options=options,
                            algorithm_name="First Visit Epsilon Greedy Monte Carlo", seed=0)
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     q_learning = TemporalDifferencePolicy(board.observation_space, board.action_space, algorithm="QLearning", env=board,
                                           n_episodes=1000, alpha=0.5, gamma=0.9)
 
-    plot_rewards_over_time(board, sarsa, n_episodes=1000,
+    plot_rewards_over_time(board, q_learning, n_episodes=1000,
                            plot_save_path="../plots/r_over_time/q_learning_r_over_time.png", options=options,
                            algorithm_name="Q-Learning", seed=0)
 
