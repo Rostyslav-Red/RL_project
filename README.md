@@ -1,5 +1,7 @@
+from src.monte_carlo_policy import MonteCarloPolicyfrom src.monte_carlo_policy import MonteCarloPolicy
+
 # Reinforcement Learning Project
-### By Ella Kemperman, Ioana-Anastasia Orasanu, Rostyslov, and Mila van Rijsbergen
+### By Ella Kemperman, Ioana-Anastasia Orasanu, Rostyslav Redchyts, and Mila van Rijsbergen
 This project contains a variety of algorithms used in reinforcement learning, such as Policy Iteration, Value Iteration,
 Monte-Carlo Methods, Q-Learning, SARSA, and Deep Q-Learning. These algorithms are used by an agent in a custom 
 [gymnasium](https://gymnasium.farama.org/) environment, in which the agent is a cat attempting to catch a mouse. The cat
@@ -61,7 +63,7 @@ Methods of choosing a dynamic programming policy:
 2. By specifying the 'algorithm' argument of the instance of DynamicProgrammingPolicy
     ```python
    p = DynamicProgrammingPolicy(
-        board, algorithm="ValueIteration", discount=0.1, stopping_criterion=20
+        board, algorithm="ValueIteration", discount=0.1, stopping_criterion=0.001
     )
    ```
 
@@ -72,7 +74,23 @@ Methods of choosing a dynamic programming policy:
     
 
 Methods of choosing a Monte-Carlo policy:
-
+1. By loading a saved policy
+    ```python
+    p = Policy.load(board, "../policies/monte_carlo_policy.json")
+    ```
+   
+2. By specifying the 'algorithm' argument of the instance of TemporalDifferencePolicy, and the keyword arguments
+   required.
+    ```python
+   p = MonteCarloPolicy(
+       board.observation_space, board.action_space, algorithm="FirstVisitEpsilonGreedy", env=board, n_episodes=1000, gamma=0.9, epsilon=0.3
+       )
+    ```
+   
+3. By calling the corresponding method of the to-be-used algorithm on an instance of TemporalDifferencePolicy:
+    ```python
+    p = MonteCarloPolicy(board.observation_space, board.action_space).first_visit_monte_carlo_control(board, n_episodes=1000)
+   ```
 
 Methods of creating a Temporal Difference Learning policy:
 

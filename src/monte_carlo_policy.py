@@ -1,8 +1,9 @@
 from policy import Policy
 import gymnasium as gym
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from action_sampler import ActionSampler
 from gymnasium.core import ActType, ObsType
+from enum import Enum
 
 
 class MonteCarloPolicy(Policy):
@@ -10,8 +11,15 @@ class MonteCarloPolicy(Policy):
     Implements On-Policy MC Prediction and Control without exploring starts, using First-Visit Monte-Carlo prediction
     and epsilon-greedy Monte-Carlo control.
     """
+    class MonteCarloAlgorithms(str, Enum):
+        FIRST_VISIT_EPSILON_GREEDY = "FirstVisitEpsilonGreedy"
 
-    def __init__(self, obs_space: ObsType, act_space: ActType, policy: dict = None):
+    def __init__(self,
+                 obs_space: ObsType,
+                 act_space: ActType,
+                 policy: dict = None,
+                 algorithm: Optional[MonteCarloAlgorithms | str] = None,
+                 **kwargs):
         """
         Constructs the MonteCarloPolicy.
 
@@ -23,10 +31,24 @@ class MonteCarloPolicy(Policy):
         self.__all_q, self.__returns = {}, {}
         self.__reset()
 
+        self.mc_functions = {
+            self.MonteCarloAlgorithms.FIRST_VISIT_EPSILON_GREEDY: self.first_visit_monte_carlo_control,
+        }
+
+        if algorithm:
+            assert isinstance(
+                algorithm, (self.MonteCarloAlgorithms, str)
+            ), f"TypeError: algorithm must be of type DynamicProgrammingAlgorithms or str. Got: {type(algorithm)}"
+            assert (
+                algorithm in self.__class__.MonteCarloAlgorithms
+            ), f"ValueError: algorithm must be one of {self.MonteCarloAlgorithms.__members__.keys()}"
+
+            self._policy = self.mc_functions[algorithm](**kwargs)
+
     def first_visit_monte_carlo_control(self,
                                         env: gym.Env,
-                                        episode_n: int = 100,
-                                        discount: float = 0.5,
+                                        n_episodes: int = 100,
+                                        gamma: float = 0.5,
                                         epsilon: float = 0.5,
                                         reset: bool = True
                                         ) -> 'MonteCarloPolicy':
@@ -34,8 +56,8 @@ class MonteCarloPolicy(Policy):
         Finds the policy using Monte Carlo method in n episodes.
 
         @param env: Environment for which the policy is found.
-        @param episode_n: Number of episodes to run the Monte Carlo method.
-        @param discount: Discount factor.
+        @param n_episodes: Number of episodes to run the Monte Carlo method.
+        @param gamma: Discount factor.
         @param epsilon: The probability the optimal action will be picked.
         @param reset: Should q and returns be reinitialised? Default is True.
         @return: Found policy.
@@ -43,7 +65,7 @@ class MonteCarloPolicy(Policy):
         if reset:
             self.__reset()
 
-        for i in range(episode_n):
+        for i in range(n_episodes):
             obs, _ = env.reset()
             obs = self._obs_to_tuple(obs)
             episode = []
@@ -65,7 +87,7 @@ class MonteCarloPolicy(Policy):
                 obs = new_obs
 
             # Does first visit for q on an episode
-            self.__first_visit(episode, discount, epsilon)
+            self.__first_visit(episode, gamma, epsilon)
 
         return self
 

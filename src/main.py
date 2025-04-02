@@ -2,7 +2,7 @@ from agent import RandomAgent, HumanAgent, PolicyAgent
 from deep_qlearning import DeepQLearningAgent, get_data_and_train, RLData
 import numpy as np
 import gymnasium as gym
-from gymnasium.utils.env_checker import check_env
+from monte_carlo_policy import MonteCarloPolicy
 from dynamic_programming_policy import DynamicProgrammingPolicy
 from policy import Policy
 from temporal_difference_policy import TemporalDifferencePolicy
