@@ -43,7 +43,7 @@ class MonteCarloPolicy(Policy):
                 algorithm in self.__class__.MonteCarloAlgorithms
             ), f"ValueError: algorithm must be one of {self.MonteCarloAlgorithms.__members__.keys()}"
 
-            self._policy = self.mc_functions[algorithm](**kwargs)
+            self.mc_functions[algorithm](**kwargs)
 
     def first_visit_monte_carlo_control(self,
                                         env: gym.Env,
