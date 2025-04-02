@@ -1,53 +1,32 @@
 from agent import RandomAgent, HumanAgent, PolicyAgent
+from deep_qlearning import DeepQLearningAgent, get_data_and_train, RLData
 import numpy as np
 import gymnasium as gym
 from gymnasium.utils.env_checker import check_env
 from dynamic_programming_policy import DynamicProgrammingPolicy
 from policy import Policy
 from temporal_difference_policy import TemporalDifferencePolicy
-from monte_carlo_policy import MonteCarloPolicy
 
 if __name__ == "__main__":
+    # Setup board
     gym.register(id="Board-v0", entry_point="board:ConfiguredBoard")
 
+    # Manually choose starting positions here, make sure positions are 2D vectors with values in 0 <= x <= 3.
     options = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
 
     board = gym.make("Board-v0", render_mode="human")
 
-    # Checks if board is a valid environment
-    # print(check_env(board.unwrapped))
+    # Remove options here to randomise positions, add seed kwarg to run at the same random seed.
+    obs, _ = board.reset(options=options)
 
-    ### Block for computing policy, only run when computing a new policy
-    # p = TemporalDifferencePolicy(board.observation_space, board.action_space).q_learning(board, n_episodes=100, alpha=0.1, gamma=0.9)
-    # p.save("policies/td_qlearning.json")
-    ###
+    # Create policy here, following instructions found in README.md
+    # Possible policies: Policy, DynamicProgrammingPolicy, MonteCarloPolicy, TemporalDifferencePolicy
+    policy = TemporalDifferencePolicy(board.observation_space, board.action_space, algorithm="SARSA", env=board,
+                                     n_episodes=1000, alpha=0.5, gamma=0.9)
 
-    obs, _ = board.reset(options=options, seed=10)
+    # Create agent here
+    # Possible agents: HumanAgent, RandomAgent, PolicyAgent, DeepQLearningAgent
+    agent = PolicyAgent(board, policy)
 
-    # p = Policy.load(board, "policies/value_iteration_policy.json")
-    # p = DynamicProgrammingPolicy(
-    #    board, algorithm="PolicyIteration", discount=0.1, stopping_criterion=0.00000001
-    # )
-    # p = MonteCarloPolicy(board.observation_space, board.action_space)
-    # p.first_visit_monte_carlo_control(board, 1000, 0.9, 0.3)
-    # p.save("policies/monte_carlo_policy.json")
-    """
-    Methods of choosing a dynamic policy:
-    
-    1. By loading a saved policy
-        p = Policy.load(board, "policies/value_iteration_policy.json")
-
-    2. By specifying the 'algorithm' argument of the instance of DynamicProgrammingPolicy
-        p = DynamicProgrammingPolicy(
-            board, algorithm="ValueIteration", discount=0.1, stopping_criterion=20
-        )
-    
-    3. By calling the 'find_policy' method on the instance of DynamicProgrammingPolicy
-        p = DynamicProgrammingPolicy(board).find_policy("ValueIteration")
-    """
-    p = Policy.load(board, "policies/monte_carlo_policy.json")
-    obs, _ = board.reset(options=options, seed=100)
-    # Possible agents: HumanAgent, RandomAgent, PolicyAgent
-    agent = PolicyAgent(board, p)
-
+    # Run agent and print final reward.
     print(f"Obtained reward: {agent.run_agent(obs)}")

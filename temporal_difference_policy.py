@@ -1,7 +1,8 @@
 from policy import Policy
 import gymnasium as gym
-from typing import Callable
+from typing import Callable, Optional
 import numpy as np
+from enum import Enum
 
 
 def epsilon_greedy(q: dict[int, float], seed: int = None, epsilon: float = 0.5) -> int:
@@ -11,15 +12,33 @@ def epsilon_greedy(q: dict[int, float], seed: int = None, epsilon: float = 0.5) 
 
 
 class TemporalDifferencePolicy(Policy):
+    class TemporalDifferenceAlgorithms(str, Enum):
+        SARSA = "SARSA"
+        QLearning = "QLearning"
 
-    def __init__(self, obs_space: gym.Space, act_space: gym.Space):
+    def __init__(self, obs_space: gym.Space, act_space: gym.Space, *, algorithm: Optional[TemporalDifferenceAlgorithms | str] = None, **kwargs):
         super().__init__(obs_space, act_space)
+
+        self.dp_functions = {
+            self.TemporalDifferenceAlgorithms.SARSA: self.sarsa,
+            self.TemporalDifferenceAlgorithms.QLearning: self.q_learning,
+        }
+
+        if algorithm:
+            assert isinstance(
+                algorithm, (self.TemporalDifferenceAlgorithms, str)
+            ), f"TypeError: algorithm must be of type DynamicProgrammingAlgorithms or str. Got: {type(algorithm)}"
+            assert (
+                algorithm in self.__class__.TemporalDifferenceAlgorithms
+            ), f"ValueError: algorithm must be one of {self.TemporalDifferenceAlgorithms.__members__.keys()}"
+
+            self._policy = self.dp_functions[algorithm](**kwargs)
 
     def sarsa(self,
               env: gym.Env,
               n_episodes: int,
               alpha: float = 0.5,
-              gamma: float = 0.1,
+              gamma: float = 0.9,
               policy_func: Callable[[dict[int, float]], int] = epsilon_greedy
               ) -> Policy:
         """
@@ -64,7 +83,7 @@ class TemporalDifferencePolicy(Policy):
               env: gym.Env,
               n_episodes: int,
               alpha: float = 0.5,
-              gamma: float = 0.1,
+              gamma: float = 0.9,
               policy_func: Callable[[dict[int, float]], int] = epsilon_greedy
               ) -> Policy:
 
