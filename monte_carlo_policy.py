@@ -1,37 +1,56 @@
 from policy import Policy
 import gymnasium as gym
 from typing import List, Tuple
-import numpy as np
-import action_sampler
+from action_sampler import ActionSampler
+from gymnasium.core import ActType, ObsType
 
 
 class MonteCarloPolicy(Policy):
+    """
+    Implements On-Policy MC Prediction and Control without exploring starts, using First-Visit Monte-Carlo prediction
+    and epsilon-greedy Monte-Carlo control.
+    """
 
-    def __init__(self, environment: gym.Env, policy: dict = None):
-        super().__init__(environment.observation_space, environment.action_space, policy=policy)
-        self.environment = environment
-        self.policy = Policy(self._obs_space, self._act_space)
-        self.all_v = {state: 0.0 for state in self.get_keys(self._obs_space)}
-        self.all_q = {(state, action): 0.0 for state in self.get_keys(self._obs_space) for action in self._all_actions}
+    def __init__(self, obs_space: ObsType, act_space: ActType, policy: dict = None):
+        """
+        Constructs the MonteCarloPolicy.
 
-    def find(self, episode_n: int = 100, discount: float = 0.5, epsilon: float = 0.1):
+        @param obs_space: The observation space of the environment this policy will describe.
+        @param act_space: The action space of the environment this policy will describe.
+        @param policy: Optional, the starting policy.
+        """
+        super().__init__(obs_space, act_space, policy=policy)
+        self.__all_q, self.__returns = {}, {}
+        self.__reset()
+
+    def first_visit_monte_carlo_control(self,
+                                        env: gym.Env,
+                                        episode_n: int = 100,
+                                        discount: float = 0.5,
+                                        epsilon: float = 0.5,
+                                        reset: bool = True
+                                        ) -> 'MonteCarloPolicy':
         """
         Finds the policy using Monte Carlo method in n episodes.
 
+        @param env: Environment for which the policy is found.
         @param episode_n: Number of episodes to run the Monte Carlo method.
         @param discount: Discount factor.
-        @param epsilon: Epsilon.
-        @return:  Found policy.
+        @param epsilon: The probability the optimal action will be picked.
+        @param reset: Should q and returns be reinitialised? Default is True.
+        @return: Found policy.
         """
-        env = self.environment
+        if reset:
+            self.__reset()
+
         for i in range(episode_n):
             obs, _ = env.reset()
             obs = self._obs_to_tuple(obs)
             episode = []
 
-            # runs episode
+            # Runs episode
             while True:
-                action = self.policy.get_action(obs)
+                action = self.get_action(obs)
 
                 new_obs, reward, terminal, truncated, _ = env.step(action)
                 new_obs = self._obs_to_tuple(new_obs)
@@ -40,62 +59,51 @@ class MonteCarloPolicy(Policy):
                     break
 
                 # Update episode
-                new=((obs, action), float(reward))
+                new = ((obs, action), float(reward))
                 episode.append(new)
 
                 obs = new_obs
-            print('did episode:', i)
 
-            # does first visit for bout v and q on an episode
-            self.first_visit(episode, discount)
-            print('did first visit:')
-            self.policy_improvement(epsilon)
-            print('did policy improvement')
-        return self.policy
+            # Does first visit for q on an episode
+            self.__first_visit(episode, discount, epsilon)
 
-    def first_visit(self, episode: List[Tuple[Tuple[Tuple[int, ...], int], float]], discount):
+        return self
+
+    def __first_visit(self,
+                      episode: List[Tuple[Tuple[Tuple[int, ...], int], float]],
+                      discount: float,
+                      epsilon: float
+                      ) -> None:
         """
-        First-visit Monte Carlo policy.
+        First-visit Monte Carlo prediction.
 
-        @param episode: Episode to visit.
+        @param episode: Episode to predict.
         @param discount: Discount factor.
-        @return: None
+        @param epsilon: The probability the optimal action will be picked.
         """
-        all_v = {}
-        all_q = {}
         reward = 0
         episode.reverse()
-        for i in range(len(episode)):
-            reward = discount * reward + episode[i][1]
-            all_v[episode[i][0][0]] = reward
-            all_q[episode[i][0]] = reward
 
-        # adds all values of one episode to a big dictionary and gets the average for each entry
-        for k, v in all_v.items():
-            if self.all_v[k] != 0:
-                self.all_v[k] = (self.all_v[k] + v)/2
-            else:
-                self.all_v[k] = v
-        for k, v in all_q.items():
-            if self.all_q[k] != 0:
-                self.all_q[k] = (self.all_q[k]+v)/2
-            else:
-                self.all_q[k] = v
-        return
+        state_actions = tuple(map(lambda step: step[0], episode))
 
-    def policy_improvement(self, epsilon):
+        for i, step in enumerate(episode):
+            reward = discount * reward + step[1]  # Update returns
+
+            # Make sure only first visit counts
+            if step[0] not in state_actions[i + 1:]:
+                self.__returns[step[0]] += 1  # Count how many returns for this state, action we have
+                self.__all_q[step[0]] += reward / self.__returns[step[0]]  # Take average
+
+                # Update policy using newly acquired knowledge
+                state = step[0][0]
+                action_values = self._action_to_value(self.__all_q, state)
+                best_action = max(action_values, key=action_values.get)
+                self[state] = ActionSampler.epsilon_greedy_action_sampler(self._all_actions, best_action, epsilon)
+
+    def __reset(self) -> None:
         """
-        Monte Carlo policy improvement.
-
-        @param epsilon: Epsilon.
-        @return: None
+        Resets the q function and the returns dictionary to their base value.
         """
-        for state in self.get_keys(self._obs_space):
-            action_values = {action: self.all_q[(state, action)] for action in self._all_actions}
-            best_action = max(action_values, key=action_values.get)
-            self.policy[state].epsilon_greedy_action_sampler(self._all_actions, best_action, epsilon)
-        return
-
-
-
-
+        self.__all_q = {(state, action): 0.0 for state in self.get_keys(self._obs_space) for action in
+                        self._all_actions}
+        self.__returns = {key: 0 for key in self.__all_q.keys()}

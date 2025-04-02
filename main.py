@@ -22,14 +22,14 @@ if __name__ == "__main__":
     # p.save("policies/td_qlearning.json")
     ###
 
-    obs, _ = board.reset(options=options, seed=100)
+    obs, _ = board.reset(options=options, seed=10)
 
     # p = Policy.load(board, "policies/value_iteration_policy.json")
     # p = DynamicProgrammingPolicy(
     #    board, algorithm="PolicyIteration", discount=0.1, stopping_criterion=0.00000001
     # )
-    # p = MonteCarloPolicy(board)
-    # p.find(1000, 0.8, 0.1)
+    # p = MonteCarloPolicy(board.observation_space, board.action_space)
+    # p.first_visit_monte_carlo_control(board, 1000, 0.9, 0.3)
     # p.save("policies/monte_carlo_policy.json")
     """
     Methods of choosing a dynamic policy:
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         p = DynamicProgrammingPolicy(board).find_policy("ValueIteration")
     """
     p = Policy.load(board, "policies/monte_carlo_policy.json")
-
+    obs, _ = board.reset(options=options, seed=100)
     # Possible agents: HumanAgent, RandomAgent, PolicyAgent
     agent = PolicyAgent(board, p)
 
