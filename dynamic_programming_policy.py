@@ -25,12 +25,12 @@ class DynamicProgrammingPolicy(Policy):
         **kwargs,
     ):
         """
-        :param environment: internally assumed to be based on Board
-        :param policy: a dictionary that maps a state to an action
-        :param algorithm: an algorithm that will be used to find a policy
-        (must be either PolicyIteration or ValueIteration)
-        :param seed: is used to set a PRNG seed
-        :param kwargs: arguments to pass to a method that calculates the policy
+        @param environment: internally assumed to be based on Board
+        @param policy: a dictionary that maps a state to an action
+        @param algorithm: an algorithm that will be used to find a policy
+                          (must be either PolicyIteration or ValueIteration)
+        @param seed: is used to set a PRNG seed
+        @param kwargs: arguments to pass to a method that calculates the policy
         """
 
         super().__init__(

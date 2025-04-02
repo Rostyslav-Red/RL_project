@@ -3,6 +3,8 @@ from typing import Any, SupportsFloat, Optional
 import gymnasium as gym
 from gymnasium.core import ObsType
 import numpy as np
+from numpy.f2py.rules import options
+
 from policy import Policy
 
 
@@ -79,7 +81,7 @@ class PolicyAgent(Agent):
 
     def __init__(self, env: gym.Env, policy: Optional[Policy | None] = None):
         super().__init__(env)
-        self.__policy = policy if policy else Policy(env)
+        self.__policy = policy if policy else Policy(env.observation_space, env.action_space)
 
     def _generate_move_helper(self) -> int:
         return self.__policy.get_action(self._obs)
@@ -88,7 +90,8 @@ class PolicyAgent(Agent):
     def sample_episode(
             env: gym.Env,
             policy: Policy,
-            seed = None
+            seed = None,
+            reset_options: dict[str, Any] = None
     ) -> tuple[tuple[tuple[int, ...]], tuple[int, ...], tuple[float, ...], tuple[tuple[int, ...]], tuple[int, ...]]:
         """
         Samples an episode from start to finish from the given environment under the given policy.
@@ -96,11 +99,12 @@ class PolicyAgent(Agent):
         @param env: Environment the episodes are sampled from.
         @param policy: Policy used for action generation.
         @param seed: Random seed used, optional.
+        @param reset_options: Options used for resetting the environment.
         @return: A tuple of the form (States, Actions, Rewards, New States, Terminateds)
         """
 
         # Reset environment and initialise variables.
-        obs, _ = env.reset(seed=seed)
+        obs, _ = env.reset(seed=seed, options=reset_options)
         obs = tuple(map(int, gym.spaces.flatten(env.observation_space, obs)))
         terminated, truncated = False, False
         observations, actions, rewards, new_observations, ended = (), (), (), (), ()

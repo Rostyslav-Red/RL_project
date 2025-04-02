@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, Iterable
 from torch.utils.data import DataLoader
 from agent import Agent, PolicyAgent
 from copy import deepcopy
@@ -12,6 +12,7 @@ import torch
 from torch import nn
 from policy import Policy
 import numpy as np
+from action_sampler import ActionSampler
 
 class DeepQLearningAgent(Agent):
     """
@@ -109,6 +110,16 @@ class DeepQLearningAgent(Agent):
         @return: Converted observation.
         """
         return torch.Tensor(tuple(map(int, gym.spaces.flatten(self._obs_space, obs)))).to(self.__device)
+
+    def make_greedy_tabular_policy(self) -> Policy:
+        """
+        @return: A greedy tabular policy based on the internal model of the agent.
+        """
+        keys = Policy.get_keys(self._obs_space)
+        policy_dict = {state:
+                           ActionSampler.deterministic_action_sampler(int(self.model.forward(torch.tensor(state).to(self.__device).float()).argmax()))
+                       for state in keys}
+        return Policy(self._obs_space, self._action_space, policy=policy_dict)
 
     def save(self, file_name: str):
         torch.save(self.__model, file_name)
@@ -261,7 +272,7 @@ class RLData(torch.utils.data.Dataset):
 def get_data_and_train(env: gym.Env, layer_sizes: tuple[int, ...], *, episodes_save_file: Optional[str] = None,
                        model_save_file: Optional[str] = None, n_episodes: int = 1000, retarget: int = 10,
                        batch_size: int = 64, sample_policy: Optional[Policy] = None, seed: Optional[int] = None,
-                       gamma: float = 0.9, lr: float = 0.01) -> Agent:
+                       n_epochs: int = 10, gamma: float = 0.9, lr: float = 0.01) -> DeepQLearningAgent:
     """
     Samples episodes and trains a DeepQLearningAgent on these episodes, returning the trained agent.
 
@@ -274,6 +285,7 @@ def get_data_and_train(env: gym.Env, layer_sizes: tuple[int, ...], *, episodes_s
     @param batch_size: Batch size used in training, default is 64.
     @param sample_policy: Sample policy used for generating data, default is a uniform policy over all actions.
     @param seed: Optional, random seed used for sampling.
+    @param n_epochs: Number of epochs used in training, default is 10.
     @param gamma: Discount used, defaults to 0.9.
     @param lr: Learning rate, defaults to 0.01.
     @return: A trained DeepQLearningAgent.
@@ -285,7 +297,7 @@ def get_data_and_train(env: gym.Env, layer_sizes: tuple[int, ...], *, episodes_s
 
     # Create Neural Network, train and save it
     agent = DeepQLearningAgent.build_model(env, layer_sizes=layer_sizes)
-    agent.train(10, data, retarget=retarget, batch_size=batch_size, gamma=gamma, lr=lr)
+    agent.train(n_epochs, data, retarget=retarget, batch_size=batch_size, gamma=gamma, lr=lr)
 
     if model_save_file:
         agent.save(model_save_file)
