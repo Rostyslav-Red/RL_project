@@ -55,7 +55,7 @@ Methods of choosing a dynamic programming policy:
 
 1. By loading a saved policy
     ```python
-    p = Policy.load(board, "policies/value_iteration_policy.json")
+    p = Policy.load(board, "../policies/value_iteration_policy.json")
     ```
 
 2. By specifying the 'algorithm' argument of the instance of DynamicProgrammingPolicy
@@ -78,7 +78,7 @@ Methods of creating a Temporal Difference Learning policy:
 
 1. By loading a saved policy
     ```python
-    p = Policy.load(board, "policies/td_qlearning.json")
+    p = Policy.load(board, "../policies/td_qlearning.json")
     ```
    
 2. By specifying the 'algorithm' argument of the instance of TemporalDifferencePolicy, and the keyword arguments
@@ -123,7 +123,7 @@ by a neural network. Methods of creating a `DeepQLearning` agent:
 2. By training a new model on a dataset. Data can be loaded from sampled data. Note there are many customisation 
    options for training, read the documentation for those.
      ```python
-    data = RLData.load("policies/episodes.json")
+    data = RLData.load("../policies/episodes.json")
     agent = DeepQLearningAgent.build_model(board, (hidden_layer1, hidden_layer2, ...))
     agent.train(n_epochs=10, data=data, **kwargs)
     ```

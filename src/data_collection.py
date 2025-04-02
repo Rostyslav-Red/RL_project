@@ -52,7 +52,7 @@ if __name__ == "__main__":
     random_policy = Policy(board.observation_space, board.action_space)
 
     plot_rewards_over_time(board, random_policy, n_episodes=1000,
-                           plot_save_path="plots/r_over_time/random_policy_r_over_time.png", options=options,
+                           plot_save_path="../plots/r_over_time/random_policy_r_over_time.png", options=options,
                            algorithm_name="Random Policy")
 
     # Dynamic Programming
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     )
 
     plot_rewards_over_time(board, value_iteration, n_episodes=1000,
-                           plot_save_path="plots/r_over_time/value_iteration_r_over_time.png", options=options,
+                           plot_save_path="../plots/r_over_time/value_iteration_r_over_time.png", options=options,
                            algorithm_name="Value Iteration")
 
     policy_iteration = DynamicProgrammingPolicy(
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     )
 
     plot_rewards_over_time(board, policy_iteration, n_episodes=1000,
-                           plot_save_path="plots/r_over_time/policy_iteration_r_over_time.png", options=options,
+                           plot_save_path="../plots/r_over_time/policy_iteration_r_over_time.png", options=options,
                            algorithm_name="Policy Iteration")
 
     # Monte Carlo goes here
@@ -79,18 +79,18 @@ if __name__ == "__main__":
                                      n_episodes=1000, alpha=0.5, gamma=0.9)
 
     plot_rewards_over_time(board, sarsa, n_episodes=1000,
-                           plot_save_path="plots/r_over_time/sarsa_r_over_time.png", options=options,
+                           plot_save_path="../plots/r_over_time/sarsa_r_over_time.png", options=options,
                            algorithm_name="SARSA")
 
     q_learning = TemporalDifferencePolicy(board.observation_space, board.action_space, algorithm="QLearning", env=board,
                                           n_episodes=1000, alpha=0.5, gamma=0.9)
 
     plot_rewards_over_time(board, sarsa, n_episodes=1000,
-                           plot_save_path="plots/r_over_time/q_learning_r_over_time.png", options=options,
+                           plot_save_path="../plots/r_over_time/q_learning_r_over_time.png", options=options,
                            algorithm_name="Q-Learning")
 
     # Deep Q Learning, note the model is not trained here, so this file does not take centuries to run.
-    agent = DeepQLearningAgent.load(board, "policies/model.pt")
+    agent = DeepQLearningAgent.load(board, "../policies/model.pt")
 
     # Uncomment the line below to train a new model from scratch, these are the setting used
     # agent = get_data_and_train(board, (10, 10), n_episodes=100000, batch_size=1024)
@@ -98,6 +98,6 @@ if __name__ == "__main__":
     deep_q_policy = agent.make_greedy_tabular_policy()
 
     plot_rewards_over_time(board, deep_q_policy, n_episodes=1000,
-                           plot_save_path="plots/r_over_time/deep_q_learning_r_over_time.png", options=options,
+                           plot_save_path="../plots/r_over_time/deep_q_learning_r_over_time.png", options=options,
                            algorithm_name="Deep Q-Learning")
 
