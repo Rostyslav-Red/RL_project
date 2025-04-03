@@ -1,5 +1,3 @@
-from src.monte_carlo_policy import MonteCarloPolicyfrom src.monte_carlo_policy import MonteCarloPolicy
-
 # Reinforcement Learning Project
 ### By Ella Kemperman, Ioana-Anastasia Orasanu, Rostyslav Redchyts, and Mila van Rijsbergen
 This project contains a variety of algorithms used in reinforcement learning, such as Policy Iteration, Value Iteration,
@@ -135,7 +133,7 @@ Finally, there is the `DeepQLearningAgent`. This samples actions by greedily act
 by a neural network. Methods of creating a `DeepQLearning` agent:
 1. By loading saved model weights
     ```python
-    agent = DeepQLearningAgent.load(board, "path-to-weights.pt")
+    agent = DeepQLearningAgent.load(board, "../policies/model.pt")
     ```
 
 2. By training a new model on a dataset. Data can be loaded from sampled data. Note there are many customisation 

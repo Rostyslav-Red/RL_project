@@ -3,6 +3,7 @@ import gymnasium as gym
 from typing import Callable, Optional
 import numpy as np
 from enum import Enum
+from agent import PolicyAgent
 
 
 def epsilon_greedy(q: dict[int, float], seed: int = None, epsilon: float = 0.5) -> int:
@@ -96,7 +97,7 @@ class TemporalDifferencePolicy(Policy):
 
         current_render_mode = env.render_mode
         if env.render_mode:
-            env.unwrapped.render_mode = None
+            env.unwrapped.render_mode = "None"
 
         for episode_n in range(n_episodes):
             obs, _ = env.reset()
@@ -122,7 +123,7 @@ class TemporalDifferencePolicy(Policy):
                 action, obs = new_action, new_obs
 
         env.unwrapped.render_mode = current_render_mode
-        env.reset(options=options)
+
         # Compute greedy policy on value function.
         return self._greedy_policy_from_q(self.__q)
 
@@ -156,6 +157,15 @@ class TemporalDifferencePolicy(Policy):
         if reset:
             self.__reset()
 
+        options = {
+            "cat_position": env.unwrapped.cat_position,
+            "target_position": env.unwrapped.target_position,
+        }
+
+        current_render_mode = env.render_mode
+        if env.render_mode:
+            env.unwrapped.render_mode = "None"
+
         for episode_n in range(n_episodes):
             obs, _ = env.reset()
             obs = self._obs_to_tuple(obs)
@@ -175,6 +185,8 @@ class TemporalDifferencePolicy(Policy):
                 )
 
                 obs = new_obs
+
+        env.unwrapped.render_mode = current_render_mode
 
         # Compute greedy policy on value function.
         return self._greedy_policy_from_q(self.__q)
