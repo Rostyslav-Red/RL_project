@@ -147,7 +147,7 @@ The project consists of comparing two algorithms from Dynamic Programming (DP), 
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.99\linewidth]{plots/rl_project_uml.png}
+    \includegraphics[width=0.99\linewidth]{../plots/rl_project_uml.png}
     \caption{Class diagram of the implementation, made with \href{https://online.visual-paradigm.com/}{Visual Paradigm}. Note that the alias \code{gym} was used for the \href{https://gymnasium.farama.org/}{gymnasium} package and the alias \code{np} was used for the \href{https://numpy.org/doc/2.1/index.html}{numpy} package.}
     \label{fig: class diagram}
 \end{figure}
@@ -171,7 +171,7 @@ Note that the convergence to the optimal value function, although guaranteed ove
 Policy Improvement algorithm relies on the estimated value function, obtained through Policy Evaluation to determine a new, improved policy though greedily choosing the most promising action. In other words, for every state, the action that is expected to lead to the highest overall reward is chosen for the updated policy.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{report_src/images/policy_iteration_pseudocode.png}
+    \includegraphics[width=0.5\linewidth]{images/policy_iteration_pseudocode.png}
     \caption{Policy Iteration pseudocode \parencite[p. 80]{sutton-2018}}
     \label{fig:policy_iteration_pseudocode}
 \end{figure}
@@ -201,7 +201,7 @@ Convergence is determined by actively checking the value of \textit{delta} at al
 Monte Carlo (MC) updates the model using data obtained from running simulations of the environment. This allows it to work without assumptions about how the model should work. How MC updates its values differs per method used. In this report, the MC First-Visit on-policy algorithm was used. The pseudocode is given in \autoref{fig: MC psuedocode}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{report_src/images/mc_on_policy_first_visit.png}
+    \includegraphics[width=0.5\linewidth]{images/mc_on_policy_first_visit.png}
     \caption{MC on-policy first-visit pseudocode \parencite[p. 101]{sutton-2018}}
     \label{fig: MC psuedocode}
 \end{figure}
@@ -273,14 +273,14 @@ As can be seen from the plots below, the results derived from Policy Iteration a
     \centering
     \begin{subfigure}[t]{0.48\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{plots/r_over_time/policy_iteration_r_over_time.png}
+        \includegraphics[width=\linewidth]{../plots/r_over_time/policy_iteration_r_over_time.png}
         \caption{Policy Iteration}
         \label{fig:policy_iteration_r_over_time}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.48\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{plots/r_over_time/value_iteration_r_over_time.png}
+        \includegraphics[width=\linewidth]{../plots/r_over_time/value_iteration_r_over_time.png}
         \caption{Value Iteration}
         \label{fig:value_iterations_r_over_time}
     \end{subfigure}
@@ -294,14 +294,14 @@ As can be seen from the plots below, the results derived from Policy Iteration a
     \centering
     \begin{subfigure}[t]{0.48\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{plots/return_probability/policy_iteration_return_probability.png}
+        \includegraphics[width=\linewidth]{../plots/return_probability/policy_iteration_return_probability.png}
         \caption{Policy Iteration}
         \label{fig:policy_iteration_return_probability}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.48\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{plots/return_probability/value_iteration_return_probability.png}
+        \includegraphics[width=\linewidth]{../plots/return_probability/value_iteration_return_probability.png}
         \caption{Value Iteration}
         \label{fig:value_iterations_return_probability}
     \end{subfigure}
@@ -315,13 +315,13 @@ As can be seen from the plots below, the results derived from Policy Iteration a
     \centering
     \begin{subfigure}[t]{0.47\linewidth}
         \centering
-        \includegraphics[height=4.2cm]{plots/r_over_time/monte_carlo_r_over_time.png}
+        \includegraphics[height=4.2cm]{../plots/r_over_time/monte_carlo_r_over_time.png}
         \caption{Average reward at each time step}
         \label{fig:monte_carlo_r_over_time}
     \end{subfigure}
     \begin{subfigure}[t]{0.47\linewidth}
         \centering
-        \includegraphics[height=4.2cm]{plots/return_probability/monte_carlo_return_probability.png}
+        \includegraphics[height=4.2cm]{../plots/return_probability/monte_carlo_return_probability.png}
         \caption{Return probability distributions}
         \label{fig:monte_carlo_return_probability}
     \end{subfigure}
@@ -336,14 +336,14 @@ As can be seen from the plots below, the results derived from Policy Iteration a
     % First row: Average rewards
     \begin{subfigure}[t]{0.47\linewidth}
         \centering
-        \includegraphics[height=4.2cm]{plots/r_over_time/sarsa_r_over_time.png}
+        \includegraphics[height=4.2cm]{../plots/r_over_time/sarsa_r_over_time.png}
         \caption{SARSA: Average reward at each time step}
         \label{fig:sarsa_r_over_time}
     \end{subfigure}
     \hspace{0.03\linewidth}
     \begin{subfigure}[t]{0.47\linewidth}
         \centering
-        \includegraphics[height=4.2cm]{plots/r_over_time/q_learning_r_over_time.png}
+        \includegraphics[height=4.2cm]{../plots/r_over_time/q_learning_r_over_time.png}
         \caption{Q-Learning: Average reward at each time step}
         \label{fig:qlearning_r_over_time}
     \end{subfigure}
@@ -353,14 +353,14 @@ As can be seen from the plots below, the results derived from Policy Iteration a
     % Second row: Return distributions
     \begin{subfigure}[t]{0.47\linewidth}
         \centering
-        \includegraphics[height=4.2cm]{plots/return_probability/sarsa_return_probability.png}
+        \includegraphics[height=4.2cm]{../plots/return_probability/sarsa_return_probability.png}
         \caption{SARSA: Return probability distribution}
         \label{fig:sarsa_return_probability}
     \end{subfigure}
     \hspace{0.03\linewidth}
     \begin{subfigure}[t]{0.47\linewidth}
         \centering
-        \includegraphics[height=4.2cm]{plots/return_probability/q_learning_return_probability.png}
+        \includegraphics[height=4.2cm]{../plots/return_probability/q_learning_return_probability.png}
         \caption{Q-Learning: Return probability distribution}
         \label{fig:qlearning_return_probability}
     \end{subfigure}
@@ -373,7 +373,7 @@ As can be seen from the plots below, the results derived from Policy Iteration a
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\linewidth]{plots/comparison/comparison_plot_final.png}
+    \includegraphics[width=0.7\linewidth]{../plots/comparison/comparison_plot_final.png}
     \caption{Comparison of the average reward evolution over the course of learning of First-Visit Monte Carlo, Q-Learning, and SARSA}
     \label{fig: comparison mc, ql, sarsa}
 \end{figure}
@@ -388,7 +388,7 @@ First-Visit Epsilon-Greedy Monte Carlo yielded the worst results of all the poli
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{plots/comparison/total_return_comparison.png}
+    \includegraphics[width=0.5\linewidth]{../plots/comparison/total_return_comparison.png}
     \caption{Comparison of the average (over 1000 episodes) final return achieved by each algorithm.}
     \label{fig:total_return_ocmparison}
 \end{figure}
@@ -429,13 +429,13 @@ In conclusion, the Deep Q-Learning algorithm discussed in this report seems to b
     \centering
     \begin{subfigure}[t]{0.47\linewidth}
         \centering
-        \includegraphics[width=1\linewidth]{plots/r_over_time/deep_q_learning_r_over_time.png}
+        \includegraphics[width=1\linewidth]{../plots/r_over_time/deep_q_learning_r_over_time.png}
         \caption{The average reward received by Deep Q-Learning at each time step.}
         \label{fig: dql over time}
     \end{subfigure}
     \begin{subfigure}[t]{0.47\linewidth}
         \centering
-        \includegraphics[width=1\linewidth]{plots/r_over_time/deep_q_learning_r_over_time.png}
+        \includegraphics[width=1\linewidth]{../plots/r_over_time/deep_q_learning_r_over_time.png}
         \caption{Return probability distributions}
         \label{fig: dql return probability}
     \end{subfigure}
