@@ -21,6 +21,8 @@ class Board(gym.Env):
     def __init__(self, board: List[List[Cell]], render_mode: str):
         super(Board, self).__init__()
 
+        if render_mode == "human":
+            raise Exception
         # Ensures that the render mode is appropriate
         assert (
             render_mode in Board.metadata["render_modes"]

@@ -8,25 +8,6 @@ from agent import PolicyAgent
 import numpy as np
 
 
-def write_res(policy):
-    gym.register(id="Board-v0", entry_point="board:ConfiguredBoard")
-
-    # Manually choose starting positions here, make sure positions are 2D vectors with values in 0 <= x <= 3.
-    options = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
-
-    board = gym.make("Board-v0", render_mode="human")
-
-    # Remove options here to randomise positions, add seed kwarg to run at the same random seed.
-    obs, _ = board.reset(options=options)
-    agent = PolicyAgent(board, policy)
-    # Run agent and print final reward.
-    reward = agent.run_agent(obs)
-    print(f"Obtained reward: {reward}")
-
-    with open("output_MC.txt", "a") as file:
-        file.write(f"{reward}\n")
-
-
 class MonteCarloPolicy(Policy):
     """
     Implements On-Policy MC Prediction and Control without exploring starts, using First-Visit Monte-Carlo prediction
@@ -90,23 +71,18 @@ class MonteCarloPolicy(Policy):
         if reset:
             self.__reset()
 
-        options = {
-            "cat_position": env.unwrapped.cat_position,
-            "target_position": env.unwrapped.target_position,
-        }
-
         current_render_mode = env.render_mode
         if env.render_mode:
             env.unwrapped.render_mode = "None"
 
         for i in range(n_episodes):
-            print(i)
             obs, _ = env.reset()
             obs = self._obs_to_tuple(obs)
             episode = []
 
             # Runs episode
-            while True:
+            terminal, truncated = False, False
+            while not (terminal or truncated):
                 action = self.get_action(obs)
 
                 new_obs, reward, terminal, truncated, _ = env.step(action)
@@ -116,16 +92,12 @@ class MonteCarloPolicy(Policy):
                 new = ((obs, action), float(reward))
                 episode.append(new)
 
-                if terminal or truncated:
-                    break
-
                 obs = new_obs
 
             # Does first visit for q on an episode
             self.__first_visit(episode, gamma, epsilon)
-            write_res(self._greedy_policy_from_q(self.__all_q))
+
         env.unwrapped.render_mode = current_render_mode
-        env.reset(options=options)
 
         return self
 
