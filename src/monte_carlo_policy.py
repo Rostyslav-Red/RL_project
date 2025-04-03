@@ -22,6 +22,8 @@ class MonteCarloPolicy(Policy):
         obs_space: ObsType,
         act_space: ActType,
         policy: dict = None,
+        *,
+        seed: Optional[int] = None,
         algorithm: Optional[MonteCarloAlgorithms | str] = None,
         **kwargs,
     ):
@@ -32,7 +34,7 @@ class MonteCarloPolicy(Policy):
         @param act_space: The action space of the environment this policy will describe.
         @param policy: Optional, the starting policy.
         """
-        super().__init__(obs_space, act_space, policy=policy)
+        super().__init__(obs_space, act_space, policy=policy, seed=seed)
         self.__all_q, self.__returns = {}, {}
         self.__reset()
 
@@ -76,7 +78,7 @@ class MonteCarloPolicy(Policy):
             env.unwrapped.render_mode = "None"
 
         for i in range(n_episodes):
-            obs, _ = env.reset()
+            obs, _ = env.reset(seed=int(self._rng.integers(0, 1000000)))
             obs = self._obs_to_tuple(obs)
             episode = []
 

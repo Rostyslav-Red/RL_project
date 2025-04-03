@@ -30,6 +30,7 @@ class TemporalDifferencePolicy(Policy):
         obs_space: gym.Space,
         act_space: gym.Space,
         *,
+        seed: Optional[int] = None,
         algorithm: Optional[TemporalDifferenceAlgorithms | str] = None,
         **kwargs,
     ):
@@ -41,7 +42,7 @@ class TemporalDifferencePolicy(Policy):
         @param algorithm: Optional, if given, calls specified algorithm with keyword arguments specified.
         @param kwargs: Arguments used in the algorithm call.
         """
-        super().__init__(obs_space, act_space)
+        super().__init__(obs_space, act_space, seed=seed)
 
         self.__q = {}
         self.__reset()
@@ -100,7 +101,7 @@ class TemporalDifferencePolicy(Policy):
             env.unwrapped.render_mode = "None"
 
         for episode_n in range(n_episodes):
-            obs, _ = env.reset()
+            obs, _ = env.reset(seed=int(self._rng.integers(0, 1000000)))
             obs = self._obs_to_tuple(obs)
 
             action = policy_func(self._action_to_value(self.__q, obs))
@@ -167,7 +168,7 @@ class TemporalDifferencePolicy(Policy):
             env.unwrapped.render_mode = "None"
 
         for episode_n in range(n_episodes):
-            obs, _ = env.reset()
+            obs, _ = env.reset(seed=int(self._rng.integers(0, 1000000)))
             obs = self._obs_to_tuple(obs)
 
             terminal, truncated = False, False

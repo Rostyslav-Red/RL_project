@@ -260,7 +260,7 @@ class Board(gym.Env):
 
             # Make sure board doesn't randomise to a terminal state.
             if np.array(self._target_position == self._cat_position).all():
-                return self.reset(seed=seed, options=options)
+                return self.reset(seed=int(self.rng.integers(0, 1000000)), options=options)
 
         self[self._cat_position].holds_agent = True
         self[self._target_position].holds_target = True

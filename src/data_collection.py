@@ -55,8 +55,8 @@ def collect_algorithm_data(
         options: dict[str, Any] = None,
         seed: Optional[int] = None):
 
+    print(f"Started training {algorithm_name}. This may take a while...")
     for i, tick in enumerate(ticks):
-        print(f"Algorithm {algorithm_name} at tick {tick}")
         rng = np.random.default_rng(seed)
 
         eval_policy = policy_train_function(tick)
@@ -66,6 +66,7 @@ def collect_algorithm_data(
                                                              seed=int(rng.integers(low=0, high=1000000)))
             data[i, j] = sum(rewards)
 
+    print(f"Finished training {algorithm_name}.")
     return data.mean(axis=0)
 
 
@@ -119,7 +120,7 @@ if __name__ == "__main__":
     print("Creating Plots")
     print("Creating Reward over Time plots (0/7)")
     # Baseline
-    random_policy = Policy(board.observation_space, board.action_space)
+    random_policy = Policy(board.observation_space, board.action_space, seed=0)
 
     plot_rewards_over_time(board, random_policy, n_episodes=1000,
                            plot_save_path="../plots/r_over_time/random_policy_r_over_time.png", options=options,
@@ -128,7 +129,7 @@ if __name__ == "__main__":
 
     # Dynamic Programming
     value_iteration = DynamicProgrammingPolicy(
-        board, algorithm="ValueIteration", discount=0.9, stopping_criterion=0.00000001
+        board, algorithm="ValueIteration", discount=0.9, stopping_criterion=0.00000001, seed=0
     )
 
     plot_rewards_over_time(board, value_iteration, n_episodes=1000,
@@ -137,7 +138,7 @@ if __name__ == "__main__":
     print("Finished plotting value iteration (2/7)")
 
     policy_iteration = DynamicProgrammingPolicy(
-        board, algorithm="PolicyIteration", discount=0.9, stopping_criterion=0.00000001
+        board, algorithm="PolicyIteration", discount=0.9, stopping_criterion=0.00000001, seed=0
     )
 
     plot_rewards_over_time(board, policy_iteration, n_episodes=1000,
@@ -149,7 +150,7 @@ if __name__ == "__main__":
     # Monte Carlo goes here
     monte_carlo = MonteCarloPolicy(
         board.observation_space, board.action_space, algorithm="FirstVisitEpsilonGreedy", env=board, n_episodes=100,
-        gamma=0.9, epsilon=0.3
+        gamma=0.9, epsilon=0.3, seed=0
        )
 
     plot_rewards_over_time(board, monte_carlo, n_episodes=1000,
@@ -160,7 +161,7 @@ if __name__ == "__main__":
 
     # Temporal Difference Learning
     sarsa = TemporalDifferencePolicy(board.observation_space, board.action_space, algorithm="SARSA", env=board,
-                                     n_episodes=100, alpha=0.5, gamma=0.9)
+                                     n_episodes=100, alpha=0.5, gamma=0.9, seed=0)
 
     plot_rewards_over_time(board, sarsa, n_episodes=1000,
                            plot_save_path="../plots/r_over_time/sarsa_r_over_time.png", options=options,
@@ -169,7 +170,7 @@ if __name__ == "__main__":
     print("Finished plotting SARSA (5/7)")
 
     q_learning = TemporalDifferencePolicy(board.observation_space, board.action_space, algorithm="QLearning", env=board,
-                                          n_episodes=100, alpha=0.5, gamma=0.9)
+                                          n_episodes=100, alpha=0.5, gamma=0.9, seed=0)
 
     plot_rewards_over_time(board, q_learning, n_episodes=1000,
                            plot_save_path="../plots/r_over_time/q_learning_r_over_time.png", options=options,
@@ -193,9 +194,9 @@ if __name__ == "__main__":
     print("_" * 100, "\n")
     print("Making comparison plot of MC, SARSA, and Q-Learning")
     # Comparison plots
-    mc_comparison_policy = MonteCarloPolicy(board.observation_space, board.action_space)
-    q_learning_comparison_policy = TemporalDifferencePolicy(board.observation_space, board.action_space)
-    sarsa_comparison_policy = TemporalDifferencePolicy(board.observation_space, board.action_space)
+    mc_comparison_policy = MonteCarloPolicy(board.observation_space, board.action_space, seed=0)
+    q_learning_comparison_policy = TemporalDifferencePolicy(board.observation_space, board.action_space, seed=0)
+    sarsa_comparison_policy = TemporalDifferencePolicy(board.observation_space, board.action_space, seed=0)
 
     policy_funcs = (
         lambda n_episodes: mc_comparison_policy.first_visit_monte_carlo_control(board, n_episodes=n_episodes, gamma=0.9,
