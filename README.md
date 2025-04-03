@@ -16,6 +16,7 @@ The repository consists of 3 main folders. The `src` folder contains the source 
 found below. The `plots` folder contains plots that can be used to compare performance of the different algorithms. The 
 `policies` folder contains a set of pre-trained policies that can be loaded, as well as a pre-trained model for Deep Q-Learning
 (stored in `policies/model.pt`), and the episode data used to construct that model (stored in `policies/episodes.json`).
+The `report_src` folder contains the LaTeX source code used to construct the report.
 
 ### Code Structure
 The 'src' folder contains the source code of  the project. The main files of note that can be run are `main` and `data_collection`. 
