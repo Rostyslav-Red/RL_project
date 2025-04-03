@@ -175,7 +175,7 @@ def plot_reward_evolution_comparison(
         thread.join()
 
     print("\nFinished training and collecting, making final plot.")
-    plt.figure(figsize=(20, 10))
+    plt.figure(figsize=(10, 5))
 
     for algorithm_data, algorithm in data:
         plt.plot(ticks, algorithm_data.mean(axis=1), label=algorithm, linewidth=2)

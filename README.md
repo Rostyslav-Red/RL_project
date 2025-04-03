@@ -7,6 +7,43 @@ can climb on trees, and wait in the trees to pounce on the mouse when it comes c
 which the cat cannot get past, while the mouse is able to sneak under them. This dynamic environment is challenging enough
 that simple random algorithms perform terrible in it, while more optimised algorithms can easily learn the environment.
 
+## Git Repository
+The git repository can be found at:
+- https://github.com/Rostyslav-Red/RL_project
+
+## Repository Structure
+The repository consists of 3 main folders. The `src` folder contains the source code, with explanation about its structure
+found below. The `plots` folder contains plots that can be used to compare performance of the different algorithms. The 
+`policies` folder contains a set of pre-trained policies that can be loaded, as well as a pre-trained model for Deep Q-Learning
+(stored in `policies/model.pt`), and the episode data used to construct that model (stored in `policies/episodes.json`).
+
+### Code Structure
+The 'src' folder contains the source code of  the project. The main files of note that can be run are `main` and `data_collection`. 
+A graph of the classes created in src can be seen below:
+
+![UML Diagram](https://github.com/Rostyslav-Red/RL_project/tree/main/plots/rl_project_uml.jpg?raw=true)
+
+The `constants.py` file is a configuration file that specifies the actions and their corresponding movement vectors that the
+agent can take, it also defines the rewards that can be gotten at each cell.
+
+The `Board` (`board.py`) class is the main environment class, which implements the environment in code. The environment itself is a 
+grid world where an agent needs to chase a target, that moves independently. The goal of the agent is to catch this target
+as quickly as possible. The `Board` is built out of `Cell` objects, found in `cell.py`.
+
+The `Policy` (`policy.py`, `dynamic_programming_policy.py`, `monte_carlo_policy.py`,`temporal_difference_policy.py`) classes are the classes that handle the main Reinforcement Learning algorithms. The base class handles the common
+functionality of all policies, such as generating all states possible based on an observation space, and mapping observations
+to actions, that are either deterministic or not. This stochasticity is handled by the `ActionSampler` (`action_sampler.py`) class,
+which assigns a probability to each action and can randomly sample one of these actions using the probabilities.
+
+The subclasses of `Policy`, `DynamicProgrammingPolicy` (`dynamic_programming_policy.py`), `MonteCarloPolicy` (`monte_carlo_policy.py`),
+and `TemporalDifferencePolicy` (`temporal_difference_policy.py`), each handle their specific algorithms, each implemented as
+methods of these classes.
+
+Finally, the `Agent`  (`agent.py`) abstract class and it's subclasses handle interaction with the environment. The `HumanAgent` allows 
+one to control the actions taken in the environment via the console, the `RandomAgent` randomly chooses an action at each
+point, the `PolicyAgent` uses a `Policy` to determine its actions, and the `DeepQLearningAgent` (`deep_qlearning.py`) 
+uses a neural network to determine its actions.
+
 ## Setting Up
 To make sure all dependencies are installed, run 
 ```shell
