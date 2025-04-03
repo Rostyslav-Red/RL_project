@@ -193,11 +193,11 @@ if __name__ == "__main__":
     # Global parameters
     OPTIONS = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
     BOARD = gym.make("Board-v0", render_mode="None")
-    SEED = 0
+    SEED = 69420
     N_EPISODES = 1000
     MAX_STEPS = 100
-    N_COMPARISON_SAMPLES = 10
-    COMPARISON_TICKS = tuple(range(0, 101, 1))
+    N_COMPARISON_SAMPLES = 50
+    COMPARISON_TICKS = tuple(range(0, 201, 2))
 
     # Data collection
     print("Collecting data")
@@ -234,13 +234,13 @@ if __name__ == "__main__":
 
     # Temporal Difference Learning
     sarsa = TemporalDifferencePolicy(BOARD.observation_space, BOARD.action_space, algorithm="SARSA", env=BOARD,
-                                     n_episodes=100, alpha=0.5, gamma=0.9, epsilon=0.3, seed=SEED)
+                                     n_episodes=500, alpha=0.05, gamma=0.9, epsilon=0.3, seed=SEED)
 
     data["SARSA"] = collect_algorithm_data(BOARD, sarsa, n_episodes=N_EPISODES, options=OPTIONS, seed=SEED, max_steps=MAX_STEPS)
     print("Finished collecting data for SARSA (5/7)")
 
     q_learning = TemporalDifferencePolicy(BOARD.observation_space, BOARD.action_space, algorithm="QLearning", env=BOARD,
-                                          n_episodes=100, alpha=0.5, gamma=0.9, epsilon=0.3, seed=SEED)
+                                          n_episodes=500, alpha=0.05, gamma=0.9, epsilon=0.3, seed=SEED)
 
     data["Q-Learning"] = collect_algorithm_data(BOARD, q_learning, n_episodes=N_EPISODES, options=OPTIONS, seed=SEED, max_steps=MAX_STEPS)
     print("Finished collecting data for Q-Learning (6/7)")
@@ -285,8 +285,8 @@ if __name__ == "__main__":
     policy_funcs = (
         lambda n_episodes: mc_comparison_policy.first_visit_monte_carlo_control(BOARD, n_episodes=n_episodes, gamma=0.9,
                                                                                 reset=False, epsilon=0.3),
-        lambda n_episodes: q_learning_comparison_policy.q_learning(BOARD, n_episodes=n_episodes, alpha=0.5, gamma=0.9, reset=False),
-        lambda n_episodes: sarsa_comparison_policy.sarsa(BOARD, n_episodes=n_episodes, alpha=0.5, gamma=0.9,
+        lambda n_episodes: q_learning_comparison_policy.q_learning(BOARD, n_episodes=n_episodes, alpha=0.05, gamma=0.9, reset=False),
+        lambda n_episodes: sarsa_comparison_policy.sarsa(BOARD, n_episodes=n_episodes, alpha=0.05, gamma=0.9,
                                                          reset=False)
     )
     algorithms = ("Monte-Carlo", "Q-Learning", "SARSA")
