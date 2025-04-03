@@ -21,7 +21,7 @@ found below. The `plots` folder contains plots that can be used to compare perfo
 The 'src' folder contains the source code of  the project. The main files of note that can be run are `main` and `data_collection`. 
 A graph of the classes created in src can be seen below:
 
-![UML Diagram](https://github.com/Rostyslav-Red/RL_project/tree/main/plots/rl_project_uml.jpg?raw=true)
+<img src="https://github.com/Rostyslav-Red/RL_project/blob/main/plots/rl_project_uml.png?raw=true" alt="drawing" width="900"/>
 
 The `constants.py` file is a configuration file that specifies the actions and their corresponding movement vectors that the
 agent can take, it also defines the rewards that can be gotten at each cell.
