@@ -550,3 +550,18 @@ class ConfiguredBoard(Board):
         example_board[3][3].walls = np.array([-1, -1])
 
         super().__init__(example_board, render_mode)
+
+    def reset(
+        self,
+        *,
+        seed: Optional[int] = None,
+        options: Optional[dict[str, Any]] = None,
+    ) -> tuple[ObsType, dict[str, Any]]:
+        obs, info = super().reset(seed=seed, options=options)
+
+        # Make sure the agent doesn't randomly spawn in the corner where it can't move.
+        if (obs["agent_pos"] == np.array([3, 3])).all():
+            if not options or not ("cat_position" in options.keys() and (options["cat_position"] == np.array([3, 3])).all()):
+                return super().reset(seed=seed + 1, options=options)
+
+        return obs, info
