@@ -133,11 +133,7 @@ class MonteCarloPolicy(Policy):
 
                 # Update policy using newly acquired knowledge
                 state = step[0][0]
-                action_values = self._action_to_value(self.__all_q, state)
-                best_action = max(action_values, key=action_values.get)
-                self[state] = ActionSampler.epsilon_greedy_action_sampler(
-                    self._all_actions, best_action, epsilon
-                )
+                self[state] = self._epsilon_greedy_action(self.__all_q, state, epsilon)
 
     def __reset(self) -> None:
         """

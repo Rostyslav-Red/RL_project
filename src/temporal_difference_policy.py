@@ -3,17 +3,7 @@ import gymnasium as gym
 from typing import Callable, Optional
 import numpy as np
 from enum import Enum
-from agent import PolicyAgent
-
-
-def epsilon_greedy(q: dict[int, float], seed: int = None, epsilon: float = 0.5) -> int:
-    rng = np.random.default_rng(seed)
-    val = rng.uniform(0, 1)
-    return (
-        max(q.items(), key=lambda kv: kv[1])[0]
-        if val > epsilon
-        else rng.choice(tuple(q.keys()))
-    )
+from action_sampler import ActionSampler
 
 
 class TemporalDifferencePolicy(Policy):
@@ -68,7 +58,7 @@ class TemporalDifferencePolicy(Policy):
         n_episodes: int,
         alpha: float = 0.5,
         gamma: float = 0.9,
-        policy_func: Callable[[dict[int, float]], int] = epsilon_greedy,
+        epsilon: float = 0.3,
         reset: bool = True,
     ) -> Policy:
         """
@@ -79,7 +69,7 @@ class TemporalDifferencePolicy(Policy):
         @param n_episodes: Number of episodes the algorithm should execute before convergence is assumed.
         @param alpha: Learning rate.
         @param gamma: Discount.
-        @param policy_func: Function mapping a dictionary of actions mapping to values to an action.
+        @param epsilon: Epsilon used for epsilon greedy decisions.
         @param reset: Should the state-action value function be reset at the start of the algorithm.
         @return: A policy constructed based on the value function, computed from it using policy_func.
         """
@@ -91,11 +81,6 @@ class TemporalDifferencePolicy(Policy):
         if reset:
             self.__reset()
 
-        options = {
-            "cat_position": env.unwrapped.cat_position,
-            "target_position": env.unwrapped.target_position,
-        }
-
         current_render_mode = env.render_mode
         if env.render_mode:
             env.unwrapped.render_mode = "None"
@@ -104,7 +89,7 @@ class TemporalDifferencePolicy(Policy):
             obs, _ = env.reset(seed=int(self._rng.integers(0, 1000000)))
             obs = self._obs_to_tuple(obs)
 
-            action = policy_func(self._action_to_value(self.__q, obs))
+            action = self._epsilon_greedy_action(self.__q, obs, epsilon).sample()
             terminal, truncated = False, False
 
             # Train over an episode
@@ -112,7 +97,7 @@ class TemporalDifferencePolicy(Policy):
                 new_obs, reward, terminal, truncated, _ = env.step(action)
                 new_obs = self._obs_to_tuple(new_obs)
 
-                new_action = policy_func(self._action_to_value(self.__q, obs))
+                new_action = self._epsilon_greedy_action(self.__q, new_obs, epsilon).sample()
 
                 # Update q
                 self.__q[obs, action] += alpha * (
@@ -134,7 +119,7 @@ class TemporalDifferencePolicy(Policy):
         n_episodes: int,
         alpha: float = 0.5,
         gamma: float = 0.9,
-        policy_func: Callable[[dict[int, float]], int] = epsilon_greedy,
+        epsilon: float = 0.3,
         reset: bool = True,
     ) -> Policy:
         """
@@ -145,7 +130,7 @@ class TemporalDifferencePolicy(Policy):
         @param n_episodes: Number of episodes the algorithm should execute before convergence is assumed.
         @param alpha: Learning rate.
         @param gamma: Discount.
-        @param policy_func: Function mapping a dictionary of actions mapping to values to an action.
+        @param epsilon: Epsilon used for epsilon greedy decisions.
         @param reset: Should the state-action value function be reset at the start of the algorithm.
         @return: A policy constructed based on the value function, computed from it using policy_func.
         """
@@ -157,11 +142,6 @@ class TemporalDifferencePolicy(Policy):
 
         if reset:
             self.__reset()
-
-        options = {
-            "cat_position": env.unwrapped.cat_position,
-            "target_position": env.unwrapped.target_position,
-        }
 
         current_render_mode = env.render_mode
         if env.render_mode:
@@ -175,7 +155,7 @@ class TemporalDifferencePolicy(Policy):
 
             # Learn over an episode
             while not (terminal or truncated):
-                action = policy_func(self._action_to_value(self.__q, obs))
+                action = self._epsilon_greedy_action(self.__q, obs, epsilon).sample()
 
                 new_obs, reward, terminal, truncated, _ = env.step(action)
                 new_obs = self._obs_to_tuple(new_obs)

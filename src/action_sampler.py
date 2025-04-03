@@ -12,18 +12,19 @@ class ActionSampler:
     sampled. This ActionSampler can sample actions with any predetermined probabilities.
     """
 
-    def __init__(self, action_probabilities: dict[int, float], generator: Optional[np.random._generator] = None):
+    def __init__(self, action_probabilities: dict[int, float], seed: Optional[int] = None):
         """
         Constructs the CustomProbabilityActionSampler.
 
         @param action_probabilities: A dictionary mapping all actions to their respective probabilities. Probabilities are
                                      normalised automatically.
-        @param generator: Random generator used to sample actions.
+        @param seed: Seed used to sample actions.
         """
         # Normalise probabilities.
         self.__probabilities = dict(map(lambda kv: (kv[0], kv[1] / sum(action_probabilities.values())),
                                         action_probabilities.items()))
-        self.__generator = generator if generator else np.random.default_rng()
+
+        self.__generator = np.random.default_rng(seed)
 
     def sample(self) -> int:
         """
@@ -62,15 +63,15 @@ class ActionSampler:
         return ActionSampler(probabilities)
 
     @staticmethod
-    def uniform_action_sampler(act_space: tuple[int, ...], generator: Optional[np.random._generator] = None) -> 'ActionSampler':
+    def uniform_action_sampler(act_space: tuple[int, ...], seed: Optional[int] = None) -> 'ActionSampler':
         """
         Constructs a uniform action sampler, which samples all action with uniform probabilities.
 
         @param act_space: A tuple of all actions this action sampler can return.
-        @param generator: The numpy random generator used to sample actions.
+        @param seed: Seed used to sample actions.
         """
         probabilities = {action: 1 / len(act_space) for action in act_space}
-        return ActionSampler(probabilities, generator)
+        return ActionSampler(probabilities, seed)
 
     @staticmethod
     def deterministic_action_sampler(action: int) -> 'ActionSampler':
@@ -83,7 +84,7 @@ class ActionSampler:
 
     @staticmethod
     def epsilon_greedy_action_sampler(act_space: tuple[int], optimal_action: int, epsilon: float,
-                                      generator: Optional[np.random._generator] = None) -> 'ActionSampler':
+                                      seed: Optional[int] = None) -> 'ActionSampler':
         """
         Constructs an epsilon soft action sampler, samples a given action at a probability of epsilon,
         while in all other cases taking a random sample from the action space.
@@ -91,11 +92,11 @@ class ActionSampler:
         @param act_space: The action space from which the actions will be sampled.
         @param optimal_action: The optimal action, picked with probability epsilon.
         @param epsilon: The probability the optimal action will be picked.
-        @param generator: Random generator used to sample actions.
+        @param seed: Seed.
         """
         assert 0 <= epsilon <= 1, "Epsilon not in range [0, 1]"
         assert optimal_action in act_space, "Optimal action is not in action space"
         probabilities = {action: epsilon / len(act_space) for action in act_space}
         probabilities[optimal_action] = 1 - epsilon + epsilon / len(act_space)
 
-        return ActionSampler(probabilities, generator)
+        return ActionSampler(probabilities, seed)

@@ -111,10 +111,22 @@ class Policy:
         @return: A random policy dictionary
         """
         # Assign a random action from the action space to each key, as long as the key does not belong to a terminal state.
-        return {key: ActionSampler.uniform_action_sampler(self._all_actions, generator=self._rng) for key in self.get_keys(self._obs_space)}
+        return {key: ActionSampler.uniform_action_sampler(self._all_actions, seed=self._rng.integers(0, 1000000)) for key in self.get_keys(self._obs_space)}
 
-    @staticmethod
-    def _action_to_value(q: dict[tuple[tuple[int, ...], int], float], observation: tuple[int, ...]) -> dict[int, float]:
+    def _epsilon_greedy_action(self, q: dict[tuple[tuple[int, ...], int], float], observation: tuple[int, ...], epsilon: float = 0.5) -> ActionSampler:
+        """
+        Creates an epsilon greedy ActionSampler from the specified state-action values for the specified state.
+
+        @param q: State-action value function.
+        @param observation: State for which ActionSampler should be constructed.
+        @param epsilon: Probability optimal action will be picked.
+        @return: ActionSampler that is epsilon-greedy to optimal action.
+        """
+        action_values = self._action_to_value(q, observation)
+        best_action = max(action_values, key=action_values.get)
+        return ActionSampler.epsilon_greedy_action_sampler(self._all_actions, best_action, epsilon, seed=self._rng.integers(0, 1000000))
+
+    def _action_to_value(self, q: dict[tuple[tuple[int, ...], int], float], observation: tuple[int, ...]) -> dict[int, float]:
         """
         Given a dictionary mapping observation + action to a value, and an observation, gives back a dictionary of
         action mapping to value.
@@ -123,7 +135,7 @@ class Policy:
         @param observation: Observation for which the dict needs to be computed.
         @return: A dictionary mapping all actions in the observation to a value.
         """
-        return {key[1]: value for key, value in q.items() if observation == key[0]}
+        return {action: q[observation, action] for action in self._all_actions}
 
     def _greedy_policy_from_q(self, q: dict[tuple[tuple[int, ...], int], float]) -> 'Policy':
         # Create a tuple of the form (obs, (((obs, act), val), ...)), grouping same observations together

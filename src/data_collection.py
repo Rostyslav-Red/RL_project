@@ -1,3 +1,5 @@
+from sympy.abc import epsilon
+
 from agent import PolicyAgent
 from deep_qlearning import DeepQLearningAgent, get_data_and_train, RLData
 import numpy as np
@@ -161,7 +163,7 @@ if __name__ == "__main__":
 
     # Temporal Difference Learning
     sarsa = TemporalDifferencePolicy(board.observation_space, board.action_space, algorithm="SARSA", env=board,
-                                     n_episodes=100, alpha=0.5, gamma=0.9, seed=0)
+                                     n_episodes=100, alpha=0.5, gamma=0.9, epsilon=0.3, seed=0)
 
     plot_rewards_over_time(board, sarsa, n_episodes=1000,
                            plot_save_path="../plots/r_over_time/sarsa_r_over_time.png", options=options,
@@ -170,7 +172,7 @@ if __name__ == "__main__":
     print("Finished plotting SARSA (5/7)")
 
     q_learning = TemporalDifferencePolicy(board.observation_space, board.action_space, algorithm="QLearning", env=board,
-                                          n_episodes=100, alpha=0.5, gamma=0.9, seed=0)
+                                          n_episodes=100, alpha=0.5, gamma=0.9, epsilon=0.3, seed=0)
 
     plot_rewards_over_time(board, q_learning, n_episodes=1000,
                            plot_save_path="../plots/r_over_time/q_learning_r_over_time.png", options=options,
