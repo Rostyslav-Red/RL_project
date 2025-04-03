@@ -3,6 +3,26 @@ import gymnasium as gym
 from typing import Callable, Optional
 import numpy as np
 from enum import Enum
+from agent import PolicyAgent
+
+
+def write_res(policy):
+    gym.register(id="Board-v0", entry_point="board:ConfiguredBoard")
+
+    # Manually choose starting positions here, make sure positions are 2D vectors with values in 0 <= x <= 3.
+    options = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
+
+    board = gym.make("Board-v0", render_mode="human")
+
+    # Remove options here to randomise positions, add seed kwarg to run at the same random seed.
+    obs, _ = board.reset(options=options)
+    agent = PolicyAgent(board, policy)
+    # Run agent and print final reward.
+    reward = agent.run_agent(obs)
+    print(f"Obtained reward: {reward}")
+
+    with open("output_QLearning.txt", "a") as file:
+        file.write(f"{reward}\n")
 
 
 def epsilon_greedy(q: dict[int, float], seed: int = None, epsilon: float = 0.5) -> int:
@@ -96,7 +116,7 @@ class TemporalDifferencePolicy(Policy):
 
         current_render_mode = env.render_mode
         if env.render_mode:
-            env.unwrapped.render_mode = None
+            env.unwrapped.render_mode = "None"
 
         for episode_n in range(n_episodes):
             obs, _ = env.reset()
@@ -120,7 +140,7 @@ class TemporalDifferencePolicy(Policy):
                 )
 
                 action, obs = new_action, new_obs
-
+            write_res(self._greedy_policy_from_q(self.__q))
         env.unwrapped.render_mode = current_render_mode
         env.reset(options=options)
         # Compute greedy policy on value function.
@@ -156,6 +176,15 @@ class TemporalDifferencePolicy(Policy):
         if reset:
             self.__reset()
 
+        options = {
+            "cat_position": env.unwrapped.cat_position,
+            "target_position": env.unwrapped.target_position,
+        }
+
+        current_render_mode = env.render_mode
+        if env.render_mode:
+            env.unwrapped.render_mode = "None"
+
         for episode_n in range(n_episodes):
             obs, _ = env.reset()
             obs = self._obs_to_tuple(obs)
@@ -175,7 +204,10 @@ class TemporalDifferencePolicy(Policy):
                 )
 
                 obs = new_obs
+            write_res(self._greedy_policy_from_q(self.__q))
 
+        env.unwrapped.render_mode = current_render_mode
+        env.reset(options=options)
         # Compute greedy policy on value function.
         return self._greedy_policy_from_q(self.__q)
 
