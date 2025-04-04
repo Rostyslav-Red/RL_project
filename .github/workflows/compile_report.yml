@@ -2,9 +2,13 @@ name: Build LaTeX document
 permissions: write-all
 on: 
   push:
+    paths:
+      - report_src/**
+      - plots/**
+
     branches: 
     - main
-    - auto_latex_compile
+
 jobs:
   build_and_upload_latex:
     runs-on: ubuntu-latest
