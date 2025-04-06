@@ -194,10 +194,10 @@ if __name__ == "__main__":
     OPTIONS = {"cat_position": np.array([0, 0]), "target_position": np.array([3, 3])}
     BOARD = gym.make("Board-v0", render_mode="None")
     SEED = 69420
-    N_EPISODES = 1000
+    N_EPISODES = 10000
     MAX_STEPS = 100
-    N_COMPARISON_SAMPLES = 50
-    COMPARISON_TICKS = tuple(range(0, 201, 2))
+    N_COMPARISON_SAMPLES = 500
+    COMPARISON_TICKS = tuple(range(0, 303, 3))
 
     # Data collection
     print("Collecting data")
